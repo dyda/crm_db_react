@@ -1,0 +1,184 @@
+import React, { useState } from 'react';
+import {
+  Drawer, List, ListItem, ListItemIcon, ListItemText, Collapse, IconButton, Divider, Box,
+} from '@mui/material';
+import { Home, ContactMail, ExpandLess, ExpandMore, Menu, People, Settings, Logout } from '@mui/icons-material';
+import { Link, useNavigate } from 'react-router-dom';
+
+const Sidebar = () => {
+  const [open, setOpen] = useState(false);
+  const [nestedOpen, setNestedOpen] = useState(false);
+  const [nestedCompanyOpen, setCompanyNestedOpen] = useState(false);
+  const [nestedEmployeeOpen, setEmployeeNestedOpen] = useState(false);
+
+  const toggleDrawer = () => {
+    setOpen(!open);
+  };
+
+  const handleNestedToggle = () => {
+    setNestedOpen(!nestedOpen);
+  };
+
+  const handleCompanyNestedToggle = () => {
+    setCompanyNestedOpen(!nestedCompanyOpen);
+  };
+  const handleEmployeeNestedToggle = () => {
+    setEmployeeNestedOpen(!nestedEmployeeOpen);
+  };
+
+  const getTextStyles = () => ({
+    color: 'white',
+    '&:hover': {
+      color: '#ffcc00',
+    },
+    cursor: 'pointer',
+  });
+
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    navigate('/');
+  };
+
+  return (
+    <>
+      <IconButton
+        onClick={toggleDrawer}
+        sx={{
+          position: 'fixed',
+          top: 12,
+          left: 12,
+          zIndex: 1200,
+          backgroundColor: 'white',
+          '&:hover': {
+            backgroundColor: '#e0e0e0',
+          },
+          color: '#000',
+          borderRadius: '50%',
+          boxShadow: 2,
+        }}
+        aria-label="Toggle menu"
+      >
+        <Menu />
+      </IconButton>
+
+      <Drawer
+        anchor="left"
+        open={open}
+        onClose={toggleDrawer}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: 250,
+            backgroundColor: '#002147',
+            color: 'white',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+          },
+        }}
+      >
+        <Box sx={{ flexGrow: 1 }}>
+          <List sx={{ width: 250 }}>
+            <ListItem button component={Link} to="/dashboard">
+              <ListItemIcon sx={{ color: 'white' }}>
+                <Home />
+              </ListItemIcon>
+              <ListItemText primary="داشبۆرد" sx={getTextStyles()} />
+            </ListItem>
+
+            <ListItem button onClick={handleNestedToggle} aria-expanded={nestedOpen}>
+              <ListItemIcon sx={{ color: 'white' }}>
+                <People />
+              </ListItemIcon>
+              <ListItemText primary="کڕیار" sx={getTextStyles()} />
+              {nestedOpen ? <ExpandLess sx={{ color: 'white' }} /> : <ExpandMore sx={{ color: 'white' }} />}
+            </ListItem>
+
+            <Collapse in={nestedOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+              <ListItem button component={Link} to="/customer_category">
+                  <ListItemText inset primary="گرووپ" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/customer">
+                  <ListItemText inset primary="ناساندن" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/customer/payment">
+                  <ListItemText inset primary="واصڵكردن پارە" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/customer/loan">
+                  <ListItemText inset primary="لیستی قەرزاکان" sx={getTextStyles()} />
+                </ListItem>
+              </List>
+              <Divider sx={{ backgroundColor: 'white' }} />
+            </Collapse>
+
+            <ListItem button component={Link} to="/contact">
+              <ListItemIcon sx={{ color: 'white' }}>
+                <ContactMail />
+              </ListItemIcon>
+              <ListItemText primary="Contact" sx={getTextStyles()} />
+            </ListItem>
+            <Divider sx={{ backgroundColor: 'white' }} />
+
+            <ListItem button onClick={handleEmployeeNestedToggle} aria-expanded={nestedEmployeeOpen}>
+              <ListItemIcon sx={{ color: 'white' }}>
+                <People />
+              </ListItemIcon>
+              <ListItemText primary="بەڕێوبەرایەتی" sx={getTextStyles()} />
+              {nestedEmployeeOpen ? <ExpandLess sx={{ color: 'white' }} /> : <ExpandMore sx={{ color: 'white' }} />}
+            </ListItem>
+
+            <Collapse in={nestedEmployeeOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+
+                <ListItem button component={Link} to="/employee">
+                  <ListItemText inset primary="لیستی کارمەندەکان" sx={getTextStyles()} />
+                </ListItem>
+
+              </List>
+              <Divider sx={{ backgroundColor: 'white' }} />
+            </Collapse>
+
+
+
+
+            <ListItem button onClick={handleCompanyNestedToggle} aria-expanded={nestedCompanyOpen}>
+              <ListItemIcon sx={{ color: 'white' }}>
+                <Settings />
+              </ListItemIcon>
+              <ListItemText primary="ڕێکخستن" sx={getTextStyles()} />
+              {nestedCompanyOpen ? <ExpandLess sx={{ color: 'white' }} /> : <ExpandMore sx={{ color: 'white' }} />}
+            </ListItem>
+
+            <Collapse in={nestedCompanyOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+                <ListItem button component={Link} to="/company/">
+                  <ListItemText inset primary="زانیاری کۆمپانیا" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/warehouse">
+                  <ListItemText inset primary="لیستی کۆگاکان" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/box_money">
+                  <ListItemText inset primary="لیستی قاصەکان" sx={getTextStyles()} />
+                </ListItem>
+              </List>
+              <Divider sx={{ backgroundColor: 'white' }} />
+            </Collapse>
+          </List>
+        </Box>
+
+        <List>
+          <ListItem button onClick={handleLogout} sx={{ cursor: 'pointer' }}>
+            <ListItemIcon sx={{ color: 'white' }}>
+              <Logout />
+            </ListItemIcon>
+            <ListItemText primary="چوونەدەرەوە" sx={{ color: 'white' }} />
+          </ListItem>
+        </List>
+      </Drawer>
+    </>
+  );
+};
+
+export default Sidebar;
