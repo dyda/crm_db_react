@@ -20,22 +20,22 @@ const LoginForm = () => {
     
     setLoading(true);
     setError('');
-    const apiUrl = 'http://127.0.0.1:8000/api/login';
+    const apiUrl = 'http://localhost:3000/api/user/login'; // ✅ fixed double slash
 
     try {
       const response = await axios.post(apiUrl, { username, password });
-
-      if (response.status === 200 && response.data.success) {
+      if (response.status === 200 ) {
         localStorage.setItem('authToken', response.data.token);
         navigate('/dashboard');
       } else {
-        setError(response.data.message || 'یوزەرنەیم یان پاسۆردت هەڵەیە');
+        setError( 'یوزەرنەیم یان پاسۆردت هەڵەیە');
       }
     } catch (err) {
       if (err.response && err.response.data && err.response.data.message) {
         setError(err.response.data.message);
       } else {
-        setError('هەڵە ڕوویدا لەپەیوەست بوون بەسێرفەررەوە');
+
+        setError('هەڵەیەکی نێوان کۆمپیوته‌ر و پەیوەندیدانی پەیامەکان');
       }
     } finally {
       setLoading(false);

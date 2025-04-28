@@ -106,9 +106,7 @@ const Sidebar = () => {
                 <ListItem button component={Link} to="/customer/payment">
                   <ListItemText inset primary="واصڵكردن پارە" sx={getTextStyles()} />
                 </ListItem>
-                <ListItem button component={Link} to="/customer/loan">
-                  <ListItemText inset primary="لیستی قەرزاکان" sx={getTextStyles()} />
-                </ListItem>
+             
               </List>
               <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>
@@ -155,6 +153,15 @@ const Sidebar = () => {
               <List component="div" disablePadding>
                 <ListItem button component={Link} to="/company/">
                   <ListItemText inset primary="زانیاری کۆمپانیا" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/city/">
+                  <ListItemText inset primary="لیستی شارەکان" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/zone/">
+                  <ListItemText inset primary="لیستی زۆنەکان" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/region/">
+                  <ListItemText inset primary="لیستی ناوچەکان" sx={getTextStyles()} />
                 </ListItem>
                 <ListItem button component={Link} to="/warehouse">
                   <ListItemText inset primary="لیستی کۆگاکان" sx={getTextStyles()} />
