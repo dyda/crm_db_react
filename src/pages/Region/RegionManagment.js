@@ -1,5 +1,10 @@
+// React and Hooks import
 import React, { useState, useEffect } from 'react';
+
+// Axios instance for API calls
 import axiosInstance from '../../components/service/axiosInstance';
+
+// MUI components for layout, form, table, feedback, and icons
 import {
   Card,
   Typography,
@@ -27,18 +32,37 @@ import {
   MenuItem,
   CircularProgress,
 } from '@mui/material';
+
 import {
   Clear as ClearIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
 
+// Utility functions for form handling
+import {
+  clearTextField,
+  handleChange,
+  resetForm,
+} from '../../components/utils/formUtils';
+
+// Main RegionManagement component
 function RegionManagement({ isDrawerOpen }) {
-  const initialFormData = { name: '', zone_id: '', city_id: '', user_id: '', description: '' };
+  // Initial state for the form fields
+  const initialFormData = {
+    name: '',
+    zone_id: '',
+    city_id: '',
+    user_id: '',
+    description: '',
+    sales_target:'',
+    type:''
+  };
+
   const rowsPerPage = 5;
 
+  // State hooks
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
   const [zones, setZones] = useState([]);
@@ -53,6 +77,7 @@ function RegionManagement({ isDrawerOpen }) {
   const [selectedRegionId, setSelectedRegionId] = useState(null);
   const [fetching, setFetching] = useState(false);
 
+  // Fetch all dropdown and table data on mount
   useEffect(() => {
     fetchAllData();
   }, []);
@@ -66,6 +91,7 @@ function RegionManagement({ isDrawerOpen }) {
         axiosInstance.get('/region/index'),
         axiosInstance.get('/user/index'),
       ]);
+
       if (zoneRes.status === 200) setZones(zoneRes.data || []);
       if (cityRes.status === 200) setCities(cityRes.data || []);
       if (regionRes.status === 200) setRegions(regionRes.data || []);
@@ -78,16 +104,18 @@ function RegionManagement({ isDrawerOpen }) {
     }
   };
 
+  // Form submit handler (create or update)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage('');
 
+    // Validate required fields
     const errors = {};
     if (!formData.name.trim()) errors.name = 'ناوی ناوچە پێویستە';
     if (!formData.zone_id) errors.zone_id = 'زۆن دیاری بکە';
     if (!formData.city_id) errors.city_id = 'شار دیاری بکە';
-    if (!formData.user_id) errors.user_id = 'بەکارهێنەر دیاری بکە';
+    if (!formData.user_id) errors.user_id = 'بەڕێوبەر دیاری بکە';
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -102,6 +130,8 @@ function RegionManagement({ isDrawerOpen }) {
       } else {
         response = await axiosInstance.post('/region/store', formData);
       }
+
+      console.log('Response:',response);
 
       if (response.status === 200 || response.status === 201) {
         fetchAllData();
@@ -120,23 +150,28 @@ function RegionManagement({ isDrawerOpen }) {
     }
   };
 
+  // Load data for edit
   const handleEditClick = (region) => {
     setSelectedRegionId(region.id);
     setFormData({
-      name: region.name,
-      zone_id: region.zone_id,
-      city_id: region.city_id,
-      user_id: region.user_id,
+      name: region.name || '',
+      zone_id: region.zone_id || '',
+      city_id: region.city_id || '',
+      user_id: region.employee_id || '',
       description: region.description || '',
+      sales_target: region.sales_target || '',
+      type: region.type || '',
     });
     setFormErrors({});
   };
 
+  // Open confirmation dialog before delete
   const handleDeleteClick = (id) => {
     setSelectedRegionId(id);
     setOpenDialog(true);
   };
 
+  // Confirm deletion
   const handleDeleteConfirm = async () => {
     try {
       await axiosInstance.delete(`/region/delete/${selectedRegionId}`);
@@ -150,18 +185,23 @@ function RegionManagement({ isDrawerOpen }) {
     }
   };
 
+  // Pagination logic
   const currentRegions = regions.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   const handlePageChange = (_, value) => setCurrentPage(value);
+
+  // Snackbars and dialogs
   const handleSnackbarClose = () => setSuccess(false);
   const handleErrorSnackbarClose = () => setErrorMessage('');
   const handleDialogClose = () => setOpenDialog(false);
 
+  // Input change handler with error reset
   const handleChangeWithErrorReset = (e, setFormData) => {
     setErrorMessage('');
     setFormErrors((prevErrors) => ({ ...prevErrors, [e.target.name]: '' }));
     handleChange(e, setFormData);
   };
 
+  // Clear select input field
   const clearSelectField = (field) => {
     setFormData((prev) => ({ ...prev, [field]: '' }));
     setFormErrors((prevErrors) => ({ ...prevErrors, [field]: '' }));
@@ -177,6 +217,7 @@ function RegionManagement({ isDrawerOpen }) {
               {selectedRegionId ? 'گۆڕینی ناوچە' : 'زیادکردنی ناوچە'}
             </Typography>
             <form onSubmit={handleSubmit}>
+              {/* Name Field */}
               <TextField
                 fullWidth
                 label="ناوی ناوچە"
@@ -197,6 +238,7 @@ function RegionManagement({ isDrawerOpen }) {
                 }}
               />
 
+              {/* Zone Select */}
               <TextField
                 select
                 fullWidth
@@ -224,6 +266,7 @@ function RegionManagement({ isDrawerOpen }) {
                 ))}
               </TextField>
 
+              {/* City Select */}
               <TextField
                 select
                 fullWidth
@@ -251,10 +294,11 @@ function RegionManagement({ isDrawerOpen }) {
                 ))}
               </TextField>
 
+              {/* User Select */}
               <TextField
                 select
                 fullWidth
-                label="بەکارهێنەر"
+                label="بەڕێوبەر"
                 name="user_id"
                 value={formData.user_id}
                 onChange={(e) => handleChangeWithErrorReset(e, setFormData)}
@@ -278,6 +322,49 @@ function RegionManagement({ isDrawerOpen }) {
                 ))}
               </TextField>
 
+              {/* Type Field */}
+              <TextField
+                fullWidth
+                label="جۆری ناوچە"
+                name="type"
+                value={formData.type}
+                onChange={(e) => handleChange(e, setFormData)}
+
+                rows={3}
+                sx={{ mb: 2 }}
+                InputProps={{
+                  endAdornment: formData.type && (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => clearSelectField('type')}>
+                        <CloseIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+                  {/* Target Field */}
+                   <TextField
+                fullWidth
+                label="ئامانجی فرۆشتن"
+                name="sales_target"
+                type="number" // ✅ Accept numbers only
+                value={formData.sales_target}
+                onChange={(e) => handleChange(e, setFormData)}
+                
+                rows={3}
+                sx={{ mb: 2 }}
+                InputProps={{
+                  endAdornment: formData.sales_target && (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => clearSelectField('sales_target')}>
+                        <CloseIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+
+              {/* Description Field */}
               <TextField
                 fullWidth
                 label="وەسف"
@@ -289,6 +376,7 @@ function RegionManagement({ isDrawerOpen }) {
                 sx={{ mb: 2 }}
               />
 
+              {/* Submit Button */}
               <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
                 {loading ? 'Loading...' : selectedRegionId ? 'نوێکردنەوە' : 'تۆمارکردن'}
               </Button>
@@ -304,50 +392,46 @@ function RegionManagement({ isDrawerOpen }) {
                 <TableHead>
                   <TableRow>
                     <TableCell>#</TableCell>
-                    <TableCell>ناوی زۆن</TableCell>
-                    <TableCell>ناوچە</TableCell>
+                    <TableCell>ناوی ناوچە</TableCell>
+                    <TableCell>زۆن</TableCell>
                     <TableCell>شار</TableCell>
-                    <TableCell>بەکارهێنەر</TableCell>
+                    <TableCell>بەڕێوبەر</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
-                {fetching ? (
-                  <TableBody>
+                <TableBody>
+                  {fetching ? (
                     <TableRow>
                       <TableCell colSpan={6} align="center">
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  </TableBody>
-                ) : (
-                  <TableBody>
-                    {currentRegions.length > 0 ? (
-                      currentRegions.map((region) => (
-                        <TableRow key={region.id}>
-                          <TableCell>{region.id}</TableCell>
-                          <TableCell>{region.name}</TableCell>
-                          <TableCell>{region.zone?.name}</TableCell>
-                          <TableCell>{region.city?.name}</TableCell>
-                          <TableCell>{region.user?.name}</TableCell>
-                          <TableCell>
-                            <IconButton color="primary" onClick={() => handleEditClick(region)}>
-                              <EditIcon />
-                            </IconButton>
-                            <IconButton color="secondary" onClick={() => handleDeleteClick(region.id)}>
-                              <DeleteIcon />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} align="center">
-                          هیچ داتایەک نەدۆزرایەوە
+                  ) : currentRegions.length > 0 ? (
+                    currentRegions.map((region) => (
+                      <TableRow key={region.id}>
+                        <TableCell>{region.id}</TableCell>
+                        <TableCell>{region.name}</TableCell>
+                        <TableCell>{region.zone_name}</TableCell>
+                        <TableCell>{region.city_name}</TableCell>
+                        <TableCell>{region.user_name}</TableCell>
+                        <TableCell>
+                          <IconButton color="primary" onClick={() => handleEditClick(region)}>
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton color="secondary" onClick={() => handleDeleteClick(region.id)}>
+                            <DeleteIcon />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
-                    )}
-                  </TableBody>
-                )}
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center">
+                        هیچ داتایەک نەدۆزرایەوە
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
               </Table>
             </TableContainer>
             <Box mt={2} display="flex" justifyContent="center">
@@ -364,7 +448,7 @@ function RegionManagement({ isDrawerOpen }) {
         </Grid>
       </Grid>
 
-      {/* Dialog */}
+      {/* Delete Confirmation Dialog */}
       <Dialog open={openDialog} onClose={handleDialogClose}>
         <DialogTitle>سڕینەوەی ناوچە</DialogTitle>
         <DialogContent>
@@ -380,7 +464,7 @@ function RegionManagement({ isDrawerOpen }) {
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar */}
+      {/* Success Snackbar */}
       <Snackbar
         open={success}
         autoHideDuration={3000}
@@ -392,6 +476,7 @@ function RegionManagement({ isDrawerOpen }) {
         </Alert>
       </Snackbar>
 
+      {/* Error Snackbar */}
       <Snackbar
         open={!!errorMessage}
         autoHideDuration={4000}
