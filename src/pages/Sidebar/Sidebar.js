@@ -38,6 +38,7 @@ const Sidebar = () => {
 
   const handleLogout = () => {
     localStorage.removeItem('authToken');
+     localStorage.removeItem('authTokenExpiry');
     navigate('/');
   };
 
@@ -131,7 +132,7 @@ const Sidebar = () => {
               <List component="div" disablePadding>
 
                 <ListItem button component={Link} to="/employee">
-                  <ListItemText inset primary="لیستی کارمەندەکان" sx={getTextStyles()} />
+                  <ListItemText inset primary=" کارمەندەکان" sx={getTextStyles()} />
                 </ListItem>
 
               </List>
@@ -155,20 +156,21 @@ const Sidebar = () => {
                   <ListItemText inset primary="زانیاری کۆمپانیا" sx={getTextStyles()} />
                 </ListItem>
                 <ListItem button component={Link} to="/city/">
-                  <ListItemText inset primary="لیستی شارەکان" sx={getTextStyles()} />
+                  <ListItemText inset primary="شارەکان" sx={getTextStyles()} />
                 </ListItem>
                 <ListItem button component={Link} to="/zone/">
-                  <ListItemText inset primary="لیستی زۆنەکان" sx={getTextStyles()} />
+                  <ListItemText inset primary="زۆنەکان" sx={getTextStyles()} />
                 </ListItem>
                 <ListItem button component={Link} to="/region/">
-                  <ListItemText inset primary="لیستی ناوچەکان" sx={getTextStyles()} />
+                  <ListItemText inset primary="ناوچەکان" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/branch/">
+                  <ListItemText inset primary="لقەکان" sx={getTextStyles()} />
                 </ListItem>
                 <ListItem button component={Link} to="/warehouse">
-                  <ListItemText inset primary="لیستی کۆگاکان" sx={getTextStyles()} />
+                  <ListItemText inset primary="کۆگاکان" sx={getTextStyles()} />
                 </ListItem>
-                <ListItem button component={Link} to="/box_money">
-                  <ListItemText inset primary="لیستی قاصەکان" sx={getTextStyles()} />
-                </ListItem>
+
               </List>
               <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>

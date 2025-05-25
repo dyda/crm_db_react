@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import { CacheProvider } from '@emotion/react';
 import createCache from '@emotion/cache';
@@ -34,6 +34,18 @@ const theme = createTheme({
 
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    // Show session expired message if needed
+  useEffect(() => {
+    if (localStorage.getItem('showSessionExpiredMessage') === '1') {
+      alert('کاتی چوونە ژوورەوە تەواو بوو، تکایە دووبارە بچۆ ژوورەوە.');
+      localStorage.removeItem('showSessionExpiredMessage');
+    }
+  }, []);
+
+
+  
+
 
   return (
     <CacheProvider value={cacheRtl}>

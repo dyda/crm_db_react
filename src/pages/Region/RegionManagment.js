@@ -1,10 +1,10 @@
 // React and Hooks import
 import React, { useState, useEffect } from 'react';
 
-// Axios instance for API calls
+// Axios instance
 import axiosInstance from '../../components/service/axiosInstance';
 
-// MUI components for layout, form, table, feedback, and icons
+// MUI components
 import {
   Card,
   Typography,
@@ -31,6 +31,7 @@ import {
   DialogTitle,
   MenuItem,
   CircularProgress,
+  Tooltip
 } from '@mui/material';
 
 import {
@@ -38,31 +39,32 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Close as CloseIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
+import { debounce } from 'lodash'; // Import lodash for debouncing
 
-// Utility functions for form handling
+// Utilities
 import {
   clearTextField,
   handleChange,
   resetForm,
 } from '../../components/utils/formUtils';
 
-// Main RegionManagement component
+// Main component
 function RegionManagement({ isDrawerOpen }) {
-  // Initial state for the form fields
   const initialFormData = {
     name: '',
     zone_id: '',
     city_id: '',
     user_id: '',
     description: '',
-    sales_target:'',
-    type:''
+    sales_target: '',
+    type: '',
+    search: '',
   };
 
   const rowsPerPage = 5;
 
-  // State hooks
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
   const [zones, setZones] = useState([]);
@@ -77,7 +79,6 @@ function RegionManagement({ isDrawerOpen }) {
   const [selectedRegionId, setSelectedRegionId] = useState(null);
   const [fetching, setFetching] = useState(false);
 
-  // Fetch all dropdown and table data on mount
   useEffect(() => {
     fetchAllData();
   }, []);
@@ -92,10 +93,10 @@ function RegionManagement({ isDrawerOpen }) {
         axiosInstance.get('/user/index'),
       ]);
 
-      if (zoneRes.status === 200) setZones(zoneRes.data || []);
-      if (cityRes.status === 200) setCities(cityRes.data || []);
-      if (regionRes.status === 200) setRegions(regionRes.data || []);
-      if (userRes.status === 200) setUsers(userRes.data || []);
+      setZones(zoneRes.data || []);
+      setCities(cityRes.data || []);
+      setRegions(regionRes.data || []);
+      setUsers(userRes.data || []);
     } catch (error) {
       console.error('Error fetching data:', error);
       setErrorMessage('هەڵە ڕوویدا لە بارکردنی داتا');
@@ -104,13 +105,11 @@ function RegionManagement({ isDrawerOpen }) {
     }
   };
 
-  // Form submit handler (create or update)
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage('');
 
-    // Validate required fields
     const errors = {};
     if (!formData.name.trim()) errors.name = 'ناوی ناوچە پێویستە';
     if (!formData.zone_id) errors.zone_id = 'زۆن دیاری بکە';
@@ -124,14 +123,9 @@ function RegionManagement({ isDrawerOpen }) {
     }
 
     try {
-      let response;
-      if (selectedRegionId) {
-        response = await axiosInstance.put(`/region/update/${selectedRegionId}`, formData);
-      } else {
-        response = await axiosInstance.post('/region/store', formData);
-      }
-
-      console.log('Response:',response);
+      const response = selectedRegionId
+        ? await axiosInstance.put(`/region/update/${selectedRegionId}`, formData)
+        : await axiosInstance.post('/region/store', formData);
 
       if (response.status === 200 || response.status === 201) {
         fetchAllData();
@@ -150,14 +144,13 @@ function RegionManagement({ isDrawerOpen }) {
     }
   };
 
-  // Load data for edit
   const handleEditClick = (region) => {
     setSelectedRegionId(region.id);
     setFormData({
       name: region.name || '',
       zone_id: region.zone_id || '',
       city_id: region.city_id || '',
-      user_id: region.employee_id || '',
+      user_id: region.user_id || '',
       description: region.description || '',
       sales_target: region.sales_target || '',
       type: region.type || '',
@@ -165,13 +158,11 @@ function RegionManagement({ isDrawerOpen }) {
     setFormErrors({});
   };
 
-  // Open confirmation dialog before delete
   const handleDeleteClick = (id) => {
     setSelectedRegionId(id);
     setOpenDialog(true);
   };
 
-  // Confirm deletion
   const handleDeleteConfirm = async () => {
     try {
       await axiosInstance.delete(`/region/delete/${selectedRegionId}`);
@@ -185,23 +176,62 @@ function RegionManagement({ isDrawerOpen }) {
     }
   };
 
-  // Pagination logic
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setFormData((prev) => ({ ...prev, search: value }));
+    debouncedSearch(value);
+  };
+
+  const debouncedSearch = debounce(async (searchValue) => {
+    if (!searchValue.trim()) {
+      fetchAllData();
+      return;
+    }
+
+    setFetching(true);
+    try {
+      const response = await axiosInstance.get('/region/filter', {
+        params: {
+          region_id: searchValue,
+          region_name: searchValue,
+          city_name: searchValue,
+          zone_name: searchValue,
+          user_name: searchValue,
+        },
+      });
+
+      if (response.status === 200) {
+        setRegions(response.data || []);
+      } else {
+        setErrorMessage('هەڵە ڕوویدا لە گەڕان');
+      }
+    } catch (error) {
+      console.error('Error searching regions:', error);
+      setErrorMessage('هەڵە ڕوویدا لە گەڕان');
+    } finally {
+      setFetching(false);
+    }
+  }, 500);
+
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel();
+    };
+  }, []);
+
   const currentRegions = regions.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   const handlePageChange = (_, value) => setCurrentPage(value);
 
-  // Snackbars and dialogs
   const handleSnackbarClose = () => setSuccess(false);
   const handleErrorSnackbarClose = () => setErrorMessage('');
   const handleDialogClose = () => setOpenDialog(false);
 
-  // Input change handler with error reset
   const handleChangeWithErrorReset = (e, setFormData) => {
     setErrorMessage('');
-    setFormErrors((prevErrors) => ({ ...prevErrors, [e.target.name]: '' }));
+    setFormErrors((prev) => ({ ...prev, [e.target.name]: '' }));
     handleChange(e, setFormData);
   };
 
-  // Clear select input field
   const clearSelectField = (field) => {
     setFormData((prev) => ({ ...prev, [field]: '' }));
     setFormErrors((prevErrors) => ({ ...prevErrors, [field]: '' }));
@@ -217,7 +247,6 @@ function RegionManagement({ isDrawerOpen }) {
               {selectedRegionId ? 'گۆڕینی ناوچە' : 'زیادکردنی ناوچە'}
             </Typography>
             <form onSubmit={handleSubmit}>
-              {/* Name Field */}
               <TextField
                 fullWidth
                 label="ناوی ناوچە"
@@ -238,99 +267,42 @@ function RegionManagement({ isDrawerOpen }) {
                 }}
               />
 
-              {/* Zone Select */}
-              <TextField
-                select
-                fullWidth
-                label="زۆن"
-                name="zone_id"
-                value={formData.zone_id}
-                onChange={(e) => handleChangeWithErrorReset(e, setFormData)}
-                error={!!formErrors.zone_id}
-                helperText={formErrors.zone_id}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: formData.zone_id && (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => clearSelectField('zone_id')}>
-                        <CloseIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              >
-                {zones.map((zone) => (
-                  <MenuItem key={zone.id} value={zone.id}>
-                    {zone.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+              {['zone_id', 'city_id', 'user_id'].map((field) => (
+                <TextField
+                  key={field}
+                  select
+                  fullWidth
+                  label={field === 'zone_id' ? 'زۆن' : field === 'city_id' ? 'شار' : 'بەڕێوبەر'}
+                  name={field}
+                  value={formData[field]}
+                  sx={{ mb: 2 }}
+                  onChange={(e) => handleChangeWithErrorReset(e, setFormData)}
+                  error={!!formErrors[field]}
+                  helperText={formErrors[field]}
+                  InputProps={{
+                    endAdornment: formData[field] && (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => clearSelectField(field)}>
+                          <CloseIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                >
+                  {(field === 'zone_id' ? zones : field === 'city_id' ? cities : users).map((item) => (
+                    <MenuItem key={item.id} value={item.id}>
+                      {item.name || '—'}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              ))}
 
-              {/* City Select */}
-              <TextField
-                select
-                fullWidth
-                label="شار"
-                name="city_id"
-                value={formData.city_id}
-                onChange={(e) => handleChangeWithErrorReset(e, setFormData)}
-                error={!!formErrors.city_id}
-                helperText={formErrors.city_id}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: formData.city_id && (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => clearSelectField('city_id')}>
-                        <CloseIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              >
-                {cities.map((city) => (
-                  <MenuItem key={city.id} value={city.id}>
-                    {city.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              {/* User Select */}
-              <TextField
-                select
-                fullWidth
-                label="بەڕێوبەر"
-                name="user_id"
-                value={formData.user_id}
-                onChange={(e) => handleChangeWithErrorReset(e, setFormData)}
-                error={!!formErrors.user_id}
-                helperText={formErrors.user_id}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: formData.user_id && (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => clearSelectField('user_id')}>
-                        <CloseIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              >
-                {users.map((user) => (
-                  <MenuItem key={user.id} value={user.id}>
-                    {user.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              {/* Type Field */}
               <TextField
                 fullWidth
                 label="جۆری ناوچە"
                 name="type"
                 value={formData.type}
                 onChange={(e) => handleChange(e, setFormData)}
-
-                rows={3}
                 sx={{ mb: 2 }}
                 InputProps={{
                   endAdornment: formData.type && (
@@ -342,16 +314,14 @@ function RegionManagement({ isDrawerOpen }) {
                   ),
                 }}
               />
-                  {/* Target Field */}
-                   <TextField
+
+              <TextField
                 fullWidth
                 label="ئامانجی فرۆشتن"
                 name="sales_target"
-                type="number" // ✅ Accept numbers only
+                type="number"
                 value={formData.sales_target}
                 onChange={(e) => handleChange(e, setFormData)}
-                
-                rows={3}
                 sx={{ mb: 2 }}
                 InputProps={{
                   endAdornment: formData.sales_target && (
@@ -364,7 +334,6 @@ function RegionManagement({ isDrawerOpen }) {
                 }}
               />
 
-              {/* Description Field */}
               <TextField
                 fullWidth
                 label="وەسف"
@@ -376,7 +345,6 @@ function RegionManagement({ isDrawerOpen }) {
                 sx={{ mb: 2 }}
               />
 
-              {/* Submit Button */}
               <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
                 {loading ? 'Loading...' : selectedRegionId ? 'نوێکردنەوە' : 'تۆمارکردن'}
               </Button>
@@ -385,8 +353,32 @@ function RegionManagement({ isDrawerOpen }) {
         </Grid>
 
         {/* Table Section */}
-        <Grid item xs={12} md={8}>
-          <Card sx={{ margin: 1 }}>
+          <Grid item xs={12} md={8}>
+         
+           <Card sx={{ m: 1, p: 2 }}>
+
+          <TextField
+            fullWidth
+            label="گەڕان"
+            name="search"
+            value={formData.search || ''}
+            onChange={handleSearchChange}
+            placeholder="ناوی ناوچە، شار، زۆن، بەڕێوبەر..."
+            sx={{ mb: 2 }}
+
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <Tooltip title="هەموو داتاکان">
+                  <IconButton onClick={fetchAllData}>
+                    <SearchIcon />
+                  </IconButton>
+                </Tooltip>
+                </InputAdornment>
+              ),
+            }}
+          />     
+
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
@@ -395,6 +387,8 @@ function RegionManagement({ isDrawerOpen }) {
                     <TableCell>ناوی ناوچە</TableCell>
                     <TableCell>زۆن</TableCell>
                     <TableCell>شار</TableCell>
+                    <TableCell>جۆری ناوچە</TableCell>
+                    <TableCell>ئامانجی فرۆشتن</TableCell>
                     <TableCell>بەڕێوبەر</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
@@ -402,7 +396,7 @@ function RegionManagement({ isDrawerOpen }) {
                 <TableBody>
                   {fetching ? (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">
+                      <TableCell colSpan={8} align="center">
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
@@ -413,6 +407,10 @@ function RegionManagement({ isDrawerOpen }) {
                         <TableCell>{region.name}</TableCell>
                         <TableCell>{region.zone_name}</TableCell>
                         <TableCell>{region.city_name}</TableCell>
+                        <TableCell>{region.type}</TableCell>
+                        <TableCell>
+                          {Number(region.sales_target || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </TableCell>
                         <TableCell>{region.user_name}</TableCell>
                         <TableCell>
                           <IconButton color="primary" onClick={() => handleEditClick(region)}>
@@ -426,7 +424,7 @@ function RegionManagement({ isDrawerOpen }) {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={6} align="center">
+                      <TableCell colSpan={8} align="center">
                         هیچ داتایەک نەدۆزرایەوە
                       </TableCell>
                     </TableRow>
@@ -448,7 +446,7 @@ function RegionManagement({ isDrawerOpen }) {
         </Grid>
       </Grid>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Dialog */}
       <Dialog open={openDialog} onClose={handleDialogClose}>
         <DialogTitle>سڕینەوەی ناوچە</DialogTitle>
         <DialogContent>
@@ -464,7 +462,7 @@ function RegionManagement({ isDrawerOpen }) {
         </DialogActions>
       </Dialog>
 
-      {/* Success Snackbar */}
+      {/* Snackbars */}
       <Snackbar
         open={success}
         autoHideDuration={3000}
@@ -476,7 +474,6 @@ function RegionManagement({ isDrawerOpen }) {
         </Alert>
       </Snackbar>
 
-      {/* Error Snackbar */}
       <Snackbar
         open={!!errorMessage}
         autoHideDuration={4000}

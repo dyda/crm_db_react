@@ -25,7 +25,8 @@ const LoginForm = () => {
     try {
       const response = await axios.post(apiUrl, { username, password });
       if (response.status === 200 ) {
-        localStorage.setItem('authToken', response.data.token);
+       localStorage.setItem('authToken', response.data.token);
+       localStorage.setItem('authTokenExpiry', response.data.expiresAt);
         navigate('/dashboard');
       } else {
         setError( 'یوزەرنەیم یان پاسۆردت هەڵەیە');

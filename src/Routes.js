@@ -17,8 +17,7 @@ const CustomerRegister = lazy(() => import('./pages/Customer/Customer_register')
 const CustomerCategoryList = lazy(() => import('./pages/Customer/Category/CustomerCategory_list'));
 
 // Warehouse management
-const WarehouseList = lazy(() => import('./pages/Warehouse/Warehouse_list'));
-const WarehouseRegister = lazy(() => import('./pages/Warehouse/Warehouse_register'));
+const WarehouseManagement = lazy(() => import('./pages/Warehouse/WarehouseManagment'));
 
 // Box money management
 const BoxMoneyList = lazy(() => import('./pages/BoxMoney/BoxMoney_list'));
@@ -31,6 +30,8 @@ const CompanyRegister = lazy(() => import('./pages/Company/Company_register'));
 const CityManagment = lazy(() => import('./pages/City/CityManagment'));
 const ZoneManagment = lazy(() => import('./pages/Zone/ZoneManagment'));
 const RegionManagment = lazy(() => import('./pages/Region/RegionManagment'));
+const BranchManagment = lazy(() => import('./pages/Branch/BranchRegister'));
+const BranchList = lazy(() => import('./pages/Branch/BranchList'));
 
 
 const RoutesComponent = () => {
@@ -48,12 +49,14 @@ const RoutesComponent = () => {
         <Route path="/city" element={<ProtectedRoute element={<CityManagment />} />} />
         <Route path="/zone" element={<ProtectedRoute element={<ZoneManagment />} />} />
         <Route path="/region" element={<ProtectedRoute element={<RegionManagment />} />} />
+        <Route path="/branch/register" element={<ProtectedRoute element={<BranchManagment />} />} />
+        <Route path="/branch/edit/:id" element={<ProtectedRoute element={<BranchManagment />} />} />
+
+        <Route path="/branch" element={<ProtectedRoute element={<BranchList />} />} />
 
         {/* Warehouse management */}
-        <Route path="/warehouse" element={<ProtectedRoute element={<WarehouseList />} />} />
-        <Route path="/warehouse/register" element={<ProtectedRoute element={<WarehouseRegister />} />} />
-        <Route path="/warehouse/edit/:id" element={<ProtectedRoute element={<WarehouseRegister />} />} />
-
+        <Route path="/warehouse" element={<ProtectedRoute element={<WarehouseManagement />} />} />
+    
         {/* Box money management */}
         <Route path="/box_money" element={<ProtectedRoute element={<BoxMoneyList />} />} />
         <Route path="/box_money/register" element={<ProtectedRoute element={<BoxMoneyRegister />} />} />
