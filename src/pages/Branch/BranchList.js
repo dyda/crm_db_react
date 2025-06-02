@@ -13,11 +13,6 @@ import {
   Pagination,
   TextField,
   InputAdornment,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   Snackbar,
   Alert,
   CircularProgress,
@@ -33,6 +28,7 @@ import {
   Clear as ClearIcon,
 } from '@mui/icons-material';
 import axiosInstance from '../../components/service/axiosInstance';
+import ConfirmDialog from '../../components/utils/ConfirmDialog';
 
 function BranchList({ isDrawerOpen }) {
   const navigate = useNavigate();
@@ -294,18 +290,15 @@ function BranchList({ isDrawerOpen }) {
       </Box>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)}>
-        <DialogTitle>دڵنیایت لە سڕینەوەی ئەم لقە؟</DialogTitle>
-        <DialogContent>
-          <DialogContentText>ئەم کردارە گەرێتەوە نییە.</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>پاشگەزبوونەوە</Button>
-          <Button onClick={handleDeleteConfirm} color="error">
-            سڕینەوە
-          </Button>
-        </DialogActions>
-      </Dialog>
+        <ConfirmDialog
+      open={openDialog}
+      onClose={setOpenDialog}
+      onConfirm={handleDeleteConfirm}
+      title="سڕینەوەی لق"
+      description="ئایە دڵنیایت لە سڕینەوەی ئەم لقە ئەم کردارە گەرێنەوە نییە."
+      confirmText="سڕینەوە"
+      cancelText="پاشگەزبوونەوە"
+    />
 
       {/* Snackbar */}
       <Snackbar

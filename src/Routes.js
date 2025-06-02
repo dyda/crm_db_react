@@ -7,9 +7,9 @@ const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
 const Login = lazy(() => import('./pages/Authentication/Login'));
 const NotFound = lazy(() => import('./pages/NotFound/NotFound'));
 
-// Employee management
-const EmployeeList = lazy(() => import('./pages/Employee/Employee_list'));
-const EmployeeRegister = lazy(() => import('./pages/Employee/Employee_register'));
+// User management
+const UserManagment = lazy(() => import('./pages/User/UserManagment'));
+const SalaryManagment = lazy(() => import('./pages/Salary/SalaryManagment'));
 
 // Customer management
 const CustomerList = lazy(() => import('./pages/Customer/Customer_list'));
@@ -18,10 +18,6 @@ const CustomerCategoryList = lazy(() => import('./pages/Customer/Category/Custom
 
 // Warehouse management
 const WarehouseManagement = lazy(() => import('./pages/Warehouse/WarehouseManagment'));
-
-// Box money management
-const BoxMoneyList = lazy(() => import('./pages/BoxMoney/BoxMoney_list'));
-const BoxMoneyRegister = lazy(() => import('./pages/BoxMoney/BoxMoney_register'));
 
 // Company management
 const CompanyRegister = lazy(() => import('./pages/Company/Company_register'));
@@ -33,6 +29,14 @@ const RegionManagment = lazy(() => import('./pages/Region/RegionManagment'));
 const BranchManagment = lazy(() => import('./pages/Branch/BranchRegister'));
 const BranchList = lazy(() => import('./pages/Branch/BranchList'));
 
+// item management
+
+const ItemManagment = lazy(() => import('./pages/Item/ItemManagment'));
+const ItemCategoryManagment = lazy(() => import('./pages/Item/ItemCategoryManagment'));
+const ItemBrandManagment = lazy(() => import('./pages/Item/ItemBrandManagment'));
+const ItemUnitManagment = lazy(() => import('./pages/Item/ItemUnitManagment'));
+const ItemTypePriceManagment = lazy(() => import('./pages/Item/ItemTypePriceManagment'));
+const ItemTransaction = lazy(() => import('./pages/Item/ItemTransactionManagment'));
 
 const RoutesComponent = () => {
   return (
@@ -57,11 +61,6 @@ const RoutesComponent = () => {
         {/* Warehouse management */}
         <Route path="/warehouse" element={<ProtectedRoute element={<WarehouseManagement />} />} />
     
-        {/* Box money management */}
-        <Route path="/box_money" element={<ProtectedRoute element={<BoxMoneyList />} />} />
-        <Route path="/box_money/register" element={<ProtectedRoute element={<BoxMoneyRegister />} />} />
-        <Route path="/box_money/edit/:id" element={<ProtectedRoute element={<BoxMoneyRegister />} />} />
-
         {/* Customer category */}
         <Route path="/customer_category" element={<ProtectedRoute element={<CustomerCategoryList />} />} />
 
@@ -73,9 +72,18 @@ const RoutesComponent = () => {
         <Route path="/customer/payment/edit/:id" element={<ProtectedRoute element={<CustomerRegister />} />} />
 
         {/* Employee management */}
-        <Route path="/employee" element={<ProtectedRoute element={<EmployeeList />} />} />
-        <Route path="/employee/register" element={<ProtectedRoute element={<EmployeeRegister />} />} />
-        <Route path="/employee/edit/:id" element={<ProtectedRoute element={<EmployeeRegister />} />} />
+        <Route path="/user" element={<ProtectedRoute element={<UserManagment />} />} />
+        {/* Salary management */}
+        <Route path="/salary" element={<ProtectedRoute element={<SalaryManagment />} />} />
+ 
+
+        {/* Item management */}
+        <Route path="/item" element={<ProtectedRoute element={<ItemManagment />} />} />
+        <Route path="/item/category" element={<ProtectedRoute element={<ItemCategoryManagment />} />} />
+        <Route path="/item/brand" element={<ProtectedRoute element={<ItemBrandManagment />} />} />
+        <Route path="/item/unit" element={<ProtectedRoute element={<ItemUnitManagment />} />} />
+        <Route path="/item/price/type" element={<ProtectedRoute element={<ItemTypePriceManagment />} />} />
+        <Route path="/item/transaction" element={<ProtectedRoute element={<ItemTransaction />} />} />
 
         {/* 404 Not Found */}
         <Route path="*" element={<NotFound />} />

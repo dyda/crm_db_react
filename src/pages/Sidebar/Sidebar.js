@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   Drawer, List, ListItem, ListItemIcon, ListItemText, Collapse, IconButton, Divider, Box,
 } from '@mui/material';
-import { Home, ContactMail, ExpandLess, ExpandMore, Menu, People, Settings, Logout } from '@mui/icons-material';
+import { Home, ContactMail, ExpandLess, ExpandMore, Menu, People, Settings, Logout ,Category,} from '@mui/icons-material';
 import { Link, useNavigate } from 'react-router-dom';
 
 const Sidebar = () => {
@@ -10,6 +10,7 @@ const Sidebar = () => {
   const [nestedOpen, setNestedOpen] = useState(false);
   const [nestedCompanyOpen, setCompanyNestedOpen] = useState(false);
   const [nestedEmployeeOpen, setEmployeeNestedOpen] = useState(false);
+  const [nestedItemOpen, setItemNestedOpen] = useState(false);
 
   const toggleDrawer = () => {
     setOpen(!open);
@@ -24,6 +25,10 @@ const Sidebar = () => {
   };
   const handleEmployeeNestedToggle = () => {
     setEmployeeNestedOpen(!nestedEmployeeOpen);
+  };
+
+  const handleItemNestedToggle = () => {
+    setItemNestedOpen(!nestedItemOpen);
   };
 
   const getTextStyles = () => ({
@@ -120,6 +125,44 @@ const Sidebar = () => {
             </ListItem>
             <Divider sx={{ backgroundColor: 'white' }} />
 
+             <ListItem button onClick={handleItemNestedToggle} aria-expanded={nestedItemOpen}>
+              <ListItemIcon sx={{ color: 'white' }}>
+                <Category />
+              </ListItemIcon>
+              <ListItemText primary="زانیاری کاڵا" sx={getTextStyles()} />
+              {nestedItemOpen ? <ExpandLess sx={{ color: 'white' }} /> : <ExpandMore sx={{ color: 'white' }} />}
+            </ListItem>
+
+            <Collapse in={nestedItemOpen} timeout="auto" unmountOnExit>
+              <List component="div" disablePadding>
+
+
+                <ListItem button component={Link} to="/item">
+                  <ListItemText inset primary=" کاڵا" sx={getTextStyles()} />
+                </ListItem>
+                <ListItem button component={Link} to="/item/category">
+                  <ListItemText inset primary=" گرووپەکان" sx={getTextStyles()} />
+                </ListItem>
+                 <ListItem button component={Link} to="/item/brand">
+                  <ListItemText inset primary=" براندەکان" sx={getTextStyles()} />
+                </ListItem>
+                 <ListItem button component={Link} to="/item/unit">
+                  <ListItemText inset primary=" یەکەکان" sx={getTextStyles()} />
+                </ListItem>
+                 <ListItem button component={Link} to="/item/price/type">
+                  <ListItemText inset primary="جۆری نرخەکان" sx={getTextStyles()} />
+                </ListItem>
+                    <ListItem button component={Link} to="/item/transaction">
+                  <ListItemText inset primary="ڕێکخستنەوەی کۆگا" sx={getTextStyles()} />
+                </ListItem>
+                
+              </List>
+              <Divider sx={{ backgroundColor: 'white' }} />
+            </Collapse>
+
+
+            <Divider sx={{ backgroundColor: 'white' }} />
+
             <ListItem button onClick={handleEmployeeNestedToggle} aria-expanded={nestedEmployeeOpen}>
               <ListItemIcon sx={{ color: 'white' }}>
                 <People />
@@ -131,8 +174,11 @@ const Sidebar = () => {
             <Collapse in={nestedEmployeeOpen} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
 
-                <ListItem button component={Link} to="/employee">
+                <ListItem button component={Link} to="/user">
                   <ListItemText inset primary=" کارمەندەکان" sx={getTextStyles()} />
+                </ListItem>
+                 <ListItem button component={Link} to="/salary">
+                  <ListItemText inset primary=" مووچەدان" sx={getTextStyles()} />
                 </ListItem>
 
               </List>

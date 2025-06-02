@@ -1,30 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Grid, Card, Typography, TextField, Button, IconButton, InputAdornment,
-  Snackbar, Alert, MenuItem, Tooltip, CircularProgress,Table, TableHead, TableRow,
+  Snackbar, Alert, CircularProgress, Table, TableHead, TableRow,
   TableCell, TableBody, TableContainer, Paper, Pagination
 } from '@mui/material';
-import ConfirmDialog from '../../components/utils/ConfirmDialog';
-
-
 import {
   Clear as ClearIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Close as CloseIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
-
+import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
 
-function WarehouseManagement({ isDrawerOpen }) {
+function ItemTypePriceManagment({ isDrawerOpen }) {
   const initialFormData = {
-    branch_id: '',
     name: '',
-    phone_1: '',
-    phone_2: '',
-    address: '',
-    note: '',
     search: '',
   };
 
@@ -32,14 +23,13 @@ function WarehouseManagement({ isDrawerOpen }) {
 
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
-  const [branches, setBranches] = useState([]);
-  const [warehouses, setWarehouses] = useState([]);
+  const [types, setTypes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [openDialog, setOpenDialog] = useState(false);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState(null);
+  const [selectedTypeId, setSelectedTypeId] = useState(null);
   const [fetching, setFetching] = useState(false);
 
   useEffect(() => {
@@ -49,12 +39,8 @@ function WarehouseManagement({ isDrawerOpen }) {
   const fetchAllData = async () => {
     setFetching(true);
     try {
-      const [branchRes, warehouseRes] = await Promise.all([
-        axiosInstance.get('/branch/index'),
-        axiosInstance.get('/warehouse/index'),
-      ]);
-      setBranches(branchRes.data || []);
-      setWarehouses(warehouseRes.data || []);
+      const res = await axiosInstance.get('/item-price-type/index');
+      setTypes(res.data || []);
     } catch (err) {
       setErrorMessage('هەڵە ڕوویدا لە بارکردنی داتا');
     } finally {
@@ -68,9 +54,7 @@ function WarehouseManagement({ isDrawerOpen }) {
     setErrorMessage('');
 
     const errors = {};
-    if (!formData.branch_id) errors.branch_id = 'لق دیاری بکە';
-    if (!formData.name.trim()) errors.name = 'ناوی کۆگا پێویستە';
-    if (!formData.phone_1.trim()) errors.phone_1 = 'ژمارەی یەکەم پێویستە';
+    if (!formData.name.trim()) errors.name = 'ناوی جۆری نرخ پێویستە';
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -79,54 +63,56 @@ function WarehouseManagement({ isDrawerOpen }) {
     }
 
     try {
-      const response = selectedWarehouseId
-        ? await axiosInstance.put(`/warehouse/update/${selectedWarehouseId}`, formData)
-        : await axiosInstance.post('/warehouse/store', formData);
+      const payload = { name: formData.name };
+      let response;
+      if (selectedTypeId) {
+        response = await axiosInstance.put(`/item-price-type/update/${selectedTypeId}`, payload);
+      } else {
+        response = await axiosInstance.post('/item-price-type/store', payload);
+      }
 
       if ([200, 201].includes(response.status)) {
         fetchAllData();
         setSuccess(true);
         setFormData(initialFormData);
-        setSelectedWarehouseId(null);
+        setSelectedTypeId(null);
         setFormErrors({});
       } else {
         setErrorMessage(response.data.message || 'هەڵە ڕوویدا');
       }
     } catch (err) {
-      setErrorMessage('هەڵە ڕوویدا لە تۆمارکردن');
+      setErrorMessage(
+        err.response?.data?.error || 'هەڵە ڕوویدا لە تۆمارکردن'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleEditClick = (warehouse) => {
-    setSelectedWarehouseId(warehouse.id);
+  const handleEditClick = (type) => {
+    setSelectedTypeId(type.id);
     setFormData({
-      branch_id: warehouse.branch_id || '',
-      name: warehouse.name || '',
-      phone_1: warehouse.phone_1 || '',
-      phone_2: warehouse.phone_2 || '',
-      address: warehouse.address || '',
-      note: warehouse.note || '',
+      name: type.name || '',
+      search: '',
     });
     setFormErrors({});
   };
 
   const handleDeleteClick = (id) => {
-    setSelectedWarehouseId(id);
+    setSelectedTypeId(id);
     setOpenDialog(true);
   };
 
   const handleDeleteConfirm = async () => {
     try {
-      await axiosInstance.delete(`/warehouse/delete/${selectedWarehouseId}`);
-      setWarehouses(prev => prev.filter(w => w.id !== selectedWarehouseId));
+      await axiosInstance.delete(`/item-price-type/delete/${selectedTypeId}`);
+      setTypes(prev => prev.filter(t => t.id !== selectedTypeId));
       setSuccess(true);
     } catch (err) {
       setErrorMessage('هەڵە ڕوویدا لە سڕینەوە');
     } finally {
       setOpenDialog(false);
-      setSelectedWarehouseId(null);
+      setSelectedTypeId(null);
     }
   };
 
@@ -141,16 +127,11 @@ function WarehouseManagement({ isDrawerOpen }) {
 
     setFetching(true);
     try {
-      const response = await axiosInstance.get('/warehouse/filter', {
-        params: {
-          branch_name: value,
-          name: value,
-          phone_1: value,
-          phone_2: value,
-          address: value,
-        },
-      });
-      setWarehouses(response.status === 200 ? response.data : []);
+      setTypes(prev =>
+        prev.filter(
+          t => t.name.includes(value)
+        )
+      );
     } catch {
       setErrorMessage('هەڵە ڕوویدا لە گەڕان');
     } finally {
@@ -175,7 +156,7 @@ function WarehouseManagement({ isDrawerOpen }) {
     setFormErrors(prev => ({ ...prev, [field]: '' }));
   };
 
-  const currentWarehouses = warehouses.slice(
+  const currentTypes = types.slice(
     (currentPage - 1) * rowsPerPage,
     currentPage * rowsPerPage
   );
@@ -186,47 +167,30 @@ function WarehouseManagement({ isDrawerOpen }) {
         <Grid item xs={12} md={4}>
           <Card sx={{ m: 1, p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              {selectedWarehouseId ? 'گۆڕینی کۆگا' : 'زیادکردنی کۆگا'}
+              {selectedTypeId ? 'گۆڕینی جۆری نرخ' : 'زیادکردنی جۆری نرخ'}
             </Typography>
             <form onSubmit={handleSubmit}>
-              {[
-                { label: 'لق', name: 'branch_id', select: true, options: branches },
-                { label: 'ناوی کۆگا', name: 'name' },
-                { label: 'ژمارەی یەکەم', name: 'phone_1' },
-                { label: 'ژمارەی دووەم', name: 'phone_2' },
-                { label: 'ناونیشان', name: 'address' },
-                { label: 'تێبینی', name: 'note' },
-              ].map(({ label, name, select, options = [] }) => (
-                <TextField
-                  key={name}
-                  fullWidth
-                  select={!!select}
-                  label={label}
-                  name={name}
-                  value={formData[name]}
-                  onChange={handleChangeWithErrorReset}
-                  error={!!formErrors[name]}
-                  helperText={formErrors[name]}
-                  sx={{ mb: 2 }}
-                  InputProps={{
-                    endAdornment: formData[name] && (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => clearSelectField(name)}>
-                          <ClearIcon />
-                        </IconButton>
-                      </InputAdornment>
-                    )
-                  }}
-                >
-                  {select && options.map((option) => (
-                    <MenuItem key={option.id} value={option.id}>
-                      {option.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              ))}
+              <TextField
+                fullWidth
+                label="ناوی جۆری نرخ"
+                name="name"
+                value={formData.name}
+                onChange={handleChangeWithErrorReset}
+                error={!!formErrors.name}
+                helperText={formErrors.name}
+                sx={{ mb: 2 }}
+                InputProps={{
+                  endAdornment: formData.name && (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => clearSelectField('name')}>
+                        <ClearIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
               <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
-                {loading ? 'Loading...' : selectedWarehouseId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                {loading ? 'Loading...' : selectedTypeId ? 'نوێکردنەوە' : 'تۆمارکردن'}
               </Button>
             </form>
           </Card>
@@ -240,16 +204,22 @@ function WarehouseManagement({ isDrawerOpen }) {
               name="search"
               value={formData.search}
               onChange={handleSearchChange}
-              placeholder="لق، ناو، ژمارە، ناونیشان..."
+              placeholder="ناو..."
               sx={{ mb: 2 }}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
-                    <Tooltip title="هەموو داتاکان">
-                      <IconButton onClick={fetchAllData}>
-                        <SearchIcon />
+                    {formData.search && (
+                      <IconButton onClick={() => {
+                        setFormData(prev => ({ ...prev, search: '' }));
+                        fetchAllData();
+                      }}>
+                        <ClearIcon />
                       </IconButton>
-                    </Tooltip>
+                    )}
+                    <IconButton onClick={fetchAllData}>
+                      <SearchIcon />
+                    </IconButton>
                   </InputAdornment>
                 ),
               }}
@@ -259,37 +229,27 @@ function WarehouseManagement({ isDrawerOpen }) {
                 <TableHead>
                   <TableRow>
                     <TableCell>#</TableCell>
-                    <TableCell>لق</TableCell>
-                    <TableCell>ناوی کۆگا</TableCell>
-                    <TableCell>ژمارەی یەکەم</TableCell>
-                    <TableCell>ژمارەی دووەم</TableCell>
-                    <TableCell>ناونیشان</TableCell>
-                    <TableCell>تێبینی</TableCell>
+                    <TableCell>ناوی جۆری نرخ</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {fetching ? (
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
+                      <TableCell colSpan={3} align="center">
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  ) : currentWarehouses.length > 0 ? (
-                    currentWarehouses.map((w) => (
-                      <TableRow key={w.id}>
-                        <TableCell>{w.id}</TableCell>
-                        <TableCell>{branches.find(b => b.id === w.branch_id)?.name || w.branch_id}</TableCell>
-                        <TableCell>{w.name}</TableCell>
-                        <TableCell>{w.phone_1}</TableCell>
-                        <TableCell>{w.phone_2}</TableCell>
-                        <TableCell>{w.address}</TableCell>
-                        <TableCell>{w.note}</TableCell>
+                  ) : currentTypes.length > 0 ? (
+                    currentTypes.map((type) => (
+                      <TableRow key={type.id}>
+                        <TableCell>{type.id}</TableCell>
+                        <TableCell>{type.name}</TableCell>
                         <TableCell>
-                          <IconButton color="primary" onClick={() => handleEditClick(w)}>
+                          <IconButton color="primary" onClick={() => handleEditClick(type)}>
                             <EditIcon />
                           </IconButton>
-                          <IconButton color="secondary" onClick={() => handleDeleteClick(w.id)}>
+                          <IconButton color="secondary" onClick={() => handleDeleteClick(type.id)}>
                             <DeleteIcon />
                           </IconButton>
                         </TableCell>
@@ -297,18 +257,20 @@ function WarehouseManagement({ isDrawerOpen }) {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
-                        {formData.search ? 'هیچ داتایەک بە گەڕانەکەت نەدۆزرایەوە' : 'هیچ داتایەک نەدۆزرایەوە'}
+                      <TableCell colSpan={3} align="center">
+                        {formData.search
+                          ? 'هیچ جۆرێک بە گەڕانەکەت نەدۆزرایەوە'
+                          : 'هیچ جۆرێک نەدۆزرایەوە'}
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
-            {warehouses.length > rowsPerPage && (
+            {types.length > rowsPerPage && (
               <Box mt={2} display="flex" justifyContent="center">
                 <Pagination
-                  count={Math.ceil(warehouses.length / rowsPerPage)}
+                  count={Math.ceil(types.length / rowsPerPage)}
                   page={currentPage}
                   onChange={handlePageChange}
                   color="primary"
@@ -320,12 +282,12 @@ function WarehouseManagement({ isDrawerOpen }) {
       </Grid>
 
       {/* Delete Dialog */}
-       <ConfirmDialog
+      <ConfirmDialog
         open={openDialog}
         onClose={handleDialogClose}
         onConfirm={handleDeleteConfirm}
-        title="سڕینەوەی کۆگا"
-        description="ئایە دڵنیایت لە سڕینەوەی ئەم کۆگایە؟ ئەم کردارە گەرێنەوە نییە."
+        title="سڕینەوەی جۆری نرخ"
+        description="ئایە دڵنیایت لە سڕینەوەی ئەم جۆرە؟ ئەم کردارە گەرێنەوە نییە."
         confirmText="سڕینەوە"
         cancelText="پاشگەزبوونەوە"
       />
@@ -341,4 +303,4 @@ function WarehouseManagement({ isDrawerOpen }) {
   );
 }
 
-export default WarehouseManagement;
+export default ItemTypePriceManagment;

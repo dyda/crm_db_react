@@ -19,11 +19,6 @@ import {
   TableRow,
   Paper,
   Pagination,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
 } from '@mui/material';
 import {
   Clear as ClearIcon,
@@ -31,6 +26,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
+import ConfirmDialog from '../../components/utils/ConfirmDialog';
 
 function ZoneManagement({ isDrawerOpen }) {
   const initialFormData = { name: '', description: '' };
@@ -273,21 +269,16 @@ function ZoneManagement({ isDrawerOpen }) {
         </Grid>
       </Grid>
 
-      {/* Dialog for Deletion */}
-      <Dialog open={openDialog} onClose={handleDialogClose}>
-        <DialogTitle>سڕینەوەی زۆن</DialogTitle>
-        <DialogContent>
-          <DialogContentText>ئایە دڵنیایت لەسڕینەوەی ئەم زۆنە؟</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose} color="primary">
-            پاشگەزبوونەوە
-          </Button>
-          <Button onClick={handleDeleteConfirm} color="secondary">
-            سڕینەوە
-          </Button>
-        </DialogActions>
-      </Dialog>
+
+      <ConfirmDialog
+        open={openDialog}
+        onClose={handleDialogClose}
+        onConfirm={handleDeleteConfirm}
+        title="سڕینەوەی زۆن"
+        description="ئایە دڵنیایت لە سڕینەوەی ئەم زۆنە ئەم کردارە گەرێنەوە نییە."
+        confirmText="سڕینەوە"
+        cancelText="پاشگەزبوونەوە"
+      />
 
       {/* Success Snackbar */}
       <Snackbar

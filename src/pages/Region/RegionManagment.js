@@ -24,11 +24,6 @@ import {
   TableRow,
   Paper,
   Pagination,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   MenuItem,
   CircularProgress,
   Tooltip
@@ -49,6 +44,7 @@ import {
   handleChange,
   resetForm,
 } from '../../components/utils/formUtils';
+import ConfirmDialog from '../../components/utils/ConfirmDialog';
 
 // Main component
 function RegionManagement({ isDrawerOpen }) {
@@ -447,20 +443,15 @@ function RegionManagement({ isDrawerOpen }) {
       </Grid>
 
       {/* Delete Dialog */}
-      <Dialog open={openDialog} onClose={handleDialogClose}>
-        <DialogTitle>سڕینەوەی ناوچە</DialogTitle>
-        <DialogContent>
-          <DialogContentText>ئایە دڵنیایت لە سڕینەوەی ئەم ناوچەیە؟</DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDialogClose} color="primary">
-            پاشگەزبوونەوە
-          </Button>
-          <Button onClick={handleDeleteConfirm} color="secondary">
-            سڕینەوە
-          </Button>
-        </DialogActions>
-      </Dialog>
+   <ConfirmDialog
+        open={openDialog}
+        onClose={handleDialogClose}
+        onConfirm={handleDeleteConfirm}
+        title="سڕینەوەی ناوچە"
+        description="ئایە دڵنیایت لە سڕینەوەی ئەم ناوچە ئەم کردارە گەرێنەوە نییە."
+        confirmText="سڕینەوە"
+        cancelText="پاشگەزبوونەوە"
+      />
 
       {/* Snackbars */}
       <Snackbar

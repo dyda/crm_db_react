@@ -35,6 +35,7 @@ const theme = createTheme({
 function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+
     // Show session expired message if needed
   useEffect(() => {
     if (localStorage.getItem('showSessionExpiredMessage') === '1') {

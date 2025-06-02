@@ -3,6 +3,8 @@ import axiosInstance from '../../components/service/axiosInstance';
 import { Card, Typography, Box, TextField, Button, MenuItem, IconButton, InputAdornment, Avatar, Snackbar, Alert, Grid } from '@mui/material';
 import ClearIcon from '@mui/icons-material/Clear';
 import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
+import { BASE_URL } from '../../config/constants';
+
 
 function CompanyRegister({ isDrawerOpen }) {
   const initialFormData = {
@@ -56,7 +58,7 @@ function CompanyRegister({ isDrawerOpen }) {
         const companyResponse = await axiosInstance.get(`company/show/${response.data.id}`);
 
         const logoUrl = companyResponse.data.logo_1
-        ? `http://localhost:3000${companyResponse.data.logo_1}` // Use the logo_1 field directly
+        ? `${BASE_URL}${companyResponse.data.logo_1}` // Use the logo_1 field directly
         : '';
         setFormData({
           ...companyResponse.data,
