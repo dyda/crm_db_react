@@ -19,8 +19,14 @@ const CustomerCategoryList = lazy(() => import('./pages/Customer/Category/Custom
 // Warehouse management
 const WarehouseManagement = lazy(() => import('./pages/Warehouse/WarehouseManagment'));
 
+ // Currency management
+const CurrencyManagment = lazy(() => import('./pages/Currency/CurrencyManagment'));
+
+// Currency rate management
+const CurrencyRateManagment = lazy(() => import('./pages/CurrencyRate/CurrencyRateManagment'));
+
 // Company management
-const CompanyRegister = lazy(() => import('./pages/Company/Company_register'));
+const CompanyManagment = lazy(() => import('./pages/Company/CompanyManagment'));
 
 // City managment
 const CityManagment = lazy(() => import('./pages/City/CityManagment'));
@@ -49,7 +55,7 @@ const RoutesComponent = () => {
         <Route path="/dashboard" element={<ProtectedRoute element={<Dashboard />} />} />
 
         {/* Company management */}
-        <Route path="/company" element={<ProtectedRoute element={<CompanyRegister />} />} />
+        <Route path="/company" element={<ProtectedRoute element={<CompanyManagment />} />} />
         <Route path="/city" element={<ProtectedRoute element={<CityManagment />} />} />
         <Route path="/zone" element={<ProtectedRoute element={<ZoneManagment />} />} />
         <Route path="/region" element={<ProtectedRoute element={<RegionManagment />} />} />
@@ -60,7 +66,10 @@ const RoutesComponent = () => {
 
         {/* Warehouse management */}
         <Route path="/warehouse" element={<ProtectedRoute element={<WarehouseManagement />} />} />
-    
+        {/* Currency management */}
+        <Route path="/currency" element={<ProtectedRoute element={<CurrencyManagment />} />} />
+        <Route path="/currency-rate" element={<ProtectedRoute element={<CurrencyRateManagment />} />} />
+
         {/* Customer category */}
         <Route path="/customer_category" element={<ProtectedRoute element={<CustomerCategoryList />} />} />
 

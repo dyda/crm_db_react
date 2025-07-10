@@ -306,11 +306,6 @@ const handleSearchChange = async (e) => {
   const handleErrorSnackbarClose = () => setErrorMessage('');
   const handleDialogClose = () => setOpenDialog(false);
 
-  // const handleChangeWithErrorReset = (e) => {
-  //   setErrorMessage('');
-  //   setFormErrors((prev) => ({ ...prev, [e.target.name]: '' }));
-  //   setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  // };
 
   const clearSelectField = (field) => {
     setFormData((prev) => ({ ...prev, [field]: '' }));
@@ -557,7 +552,7 @@ const handleSearchChange = async (e) => {
                         <TableCell>{user.id}</TableCell>
                        <TableCell>
                         {user.image ? (
-                          <Avatar src={`http://localhost:3000${user.image}`} alt={user.name} />
+                          <Avatar src={`${BASE_URL}${user.image}`} alt={user.name} />
                         ) : (
                           <Avatar>{user.name?.charAt(0) || '?'}</Avatar>
                         )}

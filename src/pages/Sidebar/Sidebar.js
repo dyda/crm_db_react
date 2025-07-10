@@ -216,6 +216,12 @@ const Sidebar = () => {
                 <ListItem button component={Link} to="/warehouse">
                   <ListItemText inset primary="کۆگاکان" sx={getTextStyles()} />
                 </ListItem>
+                <ListItem button component={Link} to="/currency">
+                  <ListItemText inset primary="دراوەکان" sx={getTextStyles()} />
+                </ListItem>
+                 <ListItem button component={Link} to="/currency-rate">
+                  <ListItemText inset primary="نرخی دراوەکان" sx={getTextStyles()} />
+                </ListItem>
 
               </List>
               <Divider sx={{ backgroundColor: 'white' }} />
