@@ -30,6 +30,7 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
+import { getCurrentUserId } from '../Authentication/auth';
 
 function ExpensesManagment({ isDrawerOpen }) {
   // Today's date in yyyy-MM-dd format
@@ -37,16 +38,17 @@ function ExpensesManagment({ isDrawerOpen }) {
     .toISOString()
     .slice(0, 10);
 
-  const initialFormData = {
-    employee_id: '',
-    category_id: '',
-    name: '',
-    amount: '',
-    note: '',
-    branch_id: '',
-    user_id: '',
-    search: '',
-  };
+ const initialFormData = {
+  employee_id: '',
+  category_id: '',
+  name: '',
+  amount: '',
+  note: '',
+  branch_id: '',
+  currency_id: '',
+  expense_date: today,
+  search: '',
+};
 
   const rowsPerPage = 5;
 
@@ -56,6 +58,7 @@ function ExpensesManagment({ isDrawerOpen }) {
   const [branches, setBranches] = useState([]);
   const [categories, setCategories] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [currencies, setCurrencies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -66,29 +69,39 @@ function ExpensesManagment({ isDrawerOpen }) {
   const [search, setSearch] = useState('');
 
   // Fetch all needed data
-  useEffect(() => {
-    fetchAllData();
-    fetchExpenses();
-    // eslint-disable-next-line
-  }, []);
+useEffect(() => {
+  setFormData((prev) => ({ ...initialFormData, user_id: getCurrentUserId() }));
+  fetchAllData();
+  fetchExpenses();
+  // eslint-disable-next-line
+}, []);
 
   const fetchAllData = async () => {
     setFetching(true);
     try {
-      const [branchRes, employeeRes, categoryRes] = await Promise.all([
+      const [branchRes, employeeRes, categoryRes, currencyRes] = await Promise.all([
         axiosInstance.get('/branch/index'),
         axiosInstance.get('/user/index'),
         axiosInstance.get('/expenses-category/index'),
+        axiosInstance.get('/currency/index'),
       ]);
       setBranches(branchRes.data || []);
       setEmployees(employeeRes.data || []);
       setCategories(categoryRes.data || []);
+      setCurrencies(currencyRes.data || []);
     } catch (error) {
       setErrorMessage('هەڵە ڕوویدا لە بارکردنی داتا');
     } finally {
       setFetching(false);
     }
   };
+
+  function formatNumberWithCommas(value) {
+  if (!value) return '';
+  const parts = value.toString().split('.');
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return parts.join('.');
+}
 
   const fetchExpenses = async (searchValue = '') => {
     setFetching(true);
@@ -120,6 +133,7 @@ function ExpensesManagment({ isDrawerOpen }) {
     fetchExpenses(value);
   };
 
+
   // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -132,6 +146,8 @@ function ExpensesManagment({ isDrawerOpen }) {
     if (!formData.name) errors.name = 'ناوی مەسرووفات پێویستە';
     if (!formData.amount) errors.amount = 'بڕی مەسرووفات پێویستە';
     if (!formData.branch_id) errors.branch_id = 'لق دیاری بکە';
+    if (!formData.currency_id) errors.currency_id = 'دراو دیاری بکە';
+    if (!formData.expense_date) errors.expense_date = 'بەرواری مەسرووفات پێویستە';
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -140,7 +156,13 @@ function ExpensesManagment({ isDrawerOpen }) {
     }
 
     try {
-      const payload = { ...formData };
+      const { search, ...rest } = formData;
+      const payload = { 
+        ...rest, 
+        user_id: getCurrentUserId(),
+        amount: Number(formData.amount.toString().replace(/,/g, '')) 
+      };
+
       let response;
       if (selectedExpenseId) {
         response = await axiosInstance.put(`/expenses/update/${selectedExpenseId}`, payload);
@@ -151,7 +173,7 @@ function ExpensesManagment({ isDrawerOpen }) {
       if (response.status === 200 || response.status === 201) {
         setSuccess(true);
         setErrorMessage('');
-        setFormData(initialFormData);
+        setFormData({ ...initialFormData, user_id: getCurrentUserId() });
         setSelectedExpenseId(null);
         setFormErrors({});
         setCurrentPage(1);
@@ -164,7 +186,7 @@ function ExpensesManagment({ isDrawerOpen }) {
     } finally {
       setLoading(false);
     }
-  };
+};
 
   const handleEditClick = async (expense) => {
     setSelectedExpenseId(expense.id);
@@ -180,7 +202,9 @@ function ExpensesManagment({ isDrawerOpen }) {
         amount: data.amount || '',
         note: data.note || '',
         branch_id: data.branch_id || '',
-        user_id: data.user_id || '',
+        user_id: getCurrentUserId(),
+        currency_id: data.currency_id || '',
+        expense_date: data.expense_date || today,
         search: '',
       });
     } catch (error) {
@@ -240,28 +264,11 @@ function ExpensesManagment({ isDrawerOpen }) {
               {selectedExpenseId ? 'گۆڕینی مەسرووفات' : 'زیادکردنی مەسرووفات'}
             </Typography>
             <form onSubmit={handleSubmit}>
+          
               <TextField
                 select
                 fullWidth
-                label="کارمەند"
-                name="employee_id"
-                value={formData.employee_id}
-                onChange={handleChangeWithErrorReset}
-                error={!!formErrors.employee_id}
-                helperText={formErrors.employee_id}
-                sx={{ mb: 2 }}
-              >
-                {employees.map((emp) => (
-                  <MenuItem key={emp.id} value={emp.id}>
-                    {emp.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              <TextField
-                select
-                fullWidth
-                label="گرووپی مەسرووفات"
+                label="گرووپ"
                 name="category_id"
                 value={formData.category_id}
                 onChange={handleChangeWithErrorReset}
@@ -278,7 +285,7 @@ function ExpensesManagment({ isDrawerOpen }) {
 
               <TextField
                 fullWidth
-                label="ناوی مەسرووفات"
+                label="ناوی مەسرووف"
                 name="name"
                 value={formData.name}
                 onChange={handleChangeWithErrorReset}
@@ -296,26 +303,54 @@ function ExpensesManagment({ isDrawerOpen }) {
                 }}
               />
 
-              <TextField
-                fullWidth
-                label="بڕ"
-                name="amount"
-                type="number"
-                value={formData.amount}
-                onChange={handleChangeWithErrorReset}
-                error={!!formErrors.amount}
-                helperText={formErrors.amount}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: formData.amount && (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => clearSelectField('amount')}>
-                        <ClearIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              <Grid item xs={8}>
+                 <TextField
+                      fullWidth
+                      label="بڕ"
+                      name="amount"
+                      type="text"
+                      value={formatNumberWithCommas(formData.amount)}
+                      onChange={(e) => {
+                        // Remove commas for storage, allow only numbers and decimals
+                        const rawValue = e.target.value.replace(/,/g, '');
+                        if (!/^\d*\.?\d*$/.test(rawValue)) return;
+                        handleChangeWithErrorReset({
+                          target: { name: 'amount', value: rawValue }
+                        });
+                      }}
+                      error={!!formErrors.amount}
+                      helperText={formErrors.amount}
+                      InputProps={{
+                        endAdornment: formData.amount && (
+                          <InputAdornment position="end">
+                            <IconButton onClick={() => clearSelectField('amount')}>
+                              <ClearIcon />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+              </Grid>
+              <Grid item xs={4}>
+                <TextField
+                  select
+                  fullWidth
+                  label="دراو"
+                  name="currency_id"
+                  value={formData.currency_id}
+                  onChange={handleChangeWithErrorReset}
+                  error={!!formErrors.currency_id}
+                  helperText={formErrors.currency_id}
+                >
+                  {currencies.map((cur) => (
+                    <MenuItem key={cur.id} value={cur.id}>
+                      {cur.name}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+            </Grid>
 
               <TextField
                 fullWidth
@@ -326,27 +361,89 @@ function ExpensesManagment({ isDrawerOpen }) {
                 sx={{ mb: 2 }}
               />
 
-              <TextField
-                select
-                fullWidth
-                label="لق"
-                name="branch_id"
-                value={formData.branch_id}
-                onChange={handleChangeWithErrorReset}
-                error={!!formErrors.branch_id}
-                helperText={formErrors.branch_id}
-                sx={{ mb: 2 }}
-              >
-                {branches.map((branch) => (
-                  <MenuItem key={branch.id} value={branch.id}>
-                    {branch.name}
-                  </MenuItem>
-                ))}
-              </TextField>
+               <Grid container spacing={2} sx={{ mb: 2 }}>
+                    <Grid item xs={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        label="کارمەند"
+                        name="employee_id"
+                        value={formData.employee_id}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.employee_id}
+                        helperText={formErrors.employee_id}
+                      >
+                        {employees.map((emp) => (
+                          <MenuItem key={emp.id} value={emp.id}>
+                            {emp.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <TextField
+                        select
+                        fullWidth
+                        label="لق"
+                        name="branch_id"
+                        value={formData.branch_id}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.branch_id}
+                        helperText={formErrors.branch_id}
+                      >
+                        {branches.map((branch) => (
+                          <MenuItem key={branch.id} value={branch.id}>
+                            {branch.name}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                  </Grid>
 
-              <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
-                {loading ? 'Loading...' : selectedExpenseId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-              </Button>
+              <TextField
+                fullWidth
+                label="بەروار"
+                name="expense_date"
+                type="date"
+                value={formData.expense_date}
+                onChange={handleChangeWithErrorReset}
+                error={!!formErrors.expense_date}
+                helperText={formErrors.expense_date}
+                sx={{ mb: 2 }}
+                InputLabelProps={{ shrink: true }}
+              />
+
+                <Grid container spacing={2} sx={{ mt: 1 }}>
+
+                    <Grid item xs={8}>
+                      <Button
+                        type="submit"
+                        fullWidth
+                        variant="contained"
+                        color="success"
+                        disabled={loading}
+                      >
+                        {loading ? 'Loading...' : selectedExpenseId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                      </Button>
+                    </Grid>
+                    <Grid item xs={4}>
+                      <Button
+                          type="button"
+                          fullWidth
+                          variant="contained"
+                          color="info"
+                          onClick={() => {
+                            setFormData({ ...initialFormData, user_id: getCurrentUserId() });
+                            setFormErrors({});
+                            setSelectedExpenseId(null);
+                            setErrorMessage('');
+                          }}
+                        >
+                          پاکردنەوە
+                        </Button>
+                    </Grid>
+                  </Grid>        
+
             </form>
           </Card>
         </Grid>
@@ -380,19 +477,20 @@ function ExpensesManagment({ isDrawerOpen }) {
                 <TableHead>
                   <TableRow>
                     <TableCell>#</TableCell>
-                    <TableCell>کارمەند</TableCell>
                     <TableCell>گرووپ</TableCell>
                     <TableCell>ناو</TableCell>
                     <TableCell>بڕ</TableCell>
-                    <TableCell>تێبینی</TableCell>
+                     <TableCell>کارمەند</TableCell>
                     <TableCell>لق</TableCell>
+                     <TableCell>تێبینی</TableCell>
+                    <TableCell>بەروار</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {fetching ? (
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
+                      <TableCell colSpan={10} align="center">
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
@@ -400,18 +498,27 @@ function ExpensesManagment({ isDrawerOpen }) {
                     currentExpenses.map((expense) => (
                       <TableRow key={expense.id}>
                         <TableCell>{expense.id}</TableCell>
-                        <TableCell>
-                          {employees.find((e) => e.id === expense.employee_id)?.name || expense.employee_id}
-                        </TableCell>
+                        
                         <TableCell>
                           {categories.find((c) => c.id === expense.category_id)?.name || expense.category_id}
                         </TableCell>
                         <TableCell>{expense.name}</TableCell>
-                        <TableCell>{expense.amount}</TableCell>
-                        <TableCell>{expense.note}</TableCell>
+                        {/* Amount with symbol */}
+                       <TableCell>
+                            {`${currencies.find((cur) => cur.id === expense.currency_id)?.symbol || ''}${formatNumberWithCommas(expense.amount)}`}
+                          </TableCell>
+
+                        <TableCell>
+                          {employees.find((e) => e.id === expense.employee_id)?.name || expense.employee_id}
+                        </TableCell>
                         <TableCell>
                           {branches.find((b) => b.id === expense.branch_id)?.name || expense.branch_id}
                         </TableCell>
+                        <TableCell>{expense.note}</TableCell>
+                        <TableCell>
+                            {new Date(expense.expense_date).toLocaleDateString('en-GB')}
+                          </TableCell>
+
                         <TableCell>
                           <IconButton color="primary" onClick={() => handleEditClick(expense)}>
                             <EditIcon />
@@ -424,7 +531,7 @@ function ExpensesManagment({ isDrawerOpen }) {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={8} align="center">
+                      <TableCell colSpan={10} align="center">
                         هیچ داتایەک نەدۆزرایەوە
                       </TableCell>
                     </TableRow>
