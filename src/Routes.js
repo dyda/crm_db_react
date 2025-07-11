@@ -11,6 +11,10 @@ const NotFound = lazy(() => import('./pages/NotFound/NotFound'));
 const UserManagment = lazy(() => import('./pages/User/UserManagment'));
 const SalaryManagment = lazy(() => import('./pages/Salary/SalaryManagment'));
 
+// Expenses managment
+const ExpensesManagment = lazy(() => import('./pages/Expenses/ExpensesManagment'));
+const ExpensesCategoryManagment = lazy(() => import('./pages/Expenses/ExpensesCategoryManagment'));
+
 // Customer management
 const CustomerList = lazy(() => import('./pages/Customer/Customer_list'));
 const CustomerRegister = lazy(() => import('./pages/Customer/Customer_register'));
@@ -34,6 +38,8 @@ const ZoneManagment = lazy(() => import('./pages/Zone/ZoneManagment'));
 const RegionManagment = lazy(() => import('./pages/Region/RegionManagment'));
 const BranchManagment = lazy(() => import('./pages/Branch/BranchRegister'));
 const BranchList = lazy(() => import('./pages/Branch/BranchList'));
+
+
 
 // item management
 
@@ -84,7 +90,11 @@ const RoutesComponent = () => {
         <Route path="/user" element={<ProtectedRoute element={<UserManagment />} />} />
         {/* Salary management */}
         <Route path="/salary" element={<ProtectedRoute element={<SalaryManagment />} />} />
- 
+
+    {/* Expenses managment */}
+
+        <Route path="/expenses" element={<ProtectedRoute element={<ExpensesManagment />} />} />
+        <Route path="/expenses/category" element={<ProtectedRoute element={<ExpensesCategoryManagment />} />} />
 
         {/* Item management */}
         <Route path="/item" element={<ProtectedRoute element={<ItemManagment />} />} />
