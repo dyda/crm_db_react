@@ -118,6 +118,12 @@ function BranchList({ isDrawerOpen }) {
     return filteredBranches.slice(start, start + rowsPerPage);
   }, [filteredBranches, currentPage]);
 
+  // Calculate sum of wallet for filtered branches
+const totalWallet = filteredBranches.reduce(
+  (sum, branch) => sum + Number(branch.wallet || 0),
+  0
+);
+
   const handlePageChange = (_, value) => setCurrentPage(value);
   const handleAddBranch = () => navigate('/branch/register');
   const handleEditBranch = (id) => navigate(`/branch/edit/${id}`);
@@ -213,7 +219,7 @@ function BranchList({ isDrawerOpen }) {
                 <TableCell onClick={() => handleSort('city_name')}>شار {getSortIcon('city_name')}</TableCell>
                 <TableCell>ناوچە</TableCell>
                 <TableCell>بەڕێوەبەر</TableCell>
-                <TableCell onClick={() => handleSort('wallet')}>قاسە {getSortIcon('wallet')}</TableCell>
+                <TableCell onClick={() => handleSort('wallet')}>قاصە {getSortIcon('wallet')}</TableCell>
                 <TableCell>جۆر</TableCell>
                 <TableCell>ژمارەی مۆبایل</TableCell>
                 <TableCell>دۆخ</TableCell>
@@ -284,9 +290,14 @@ function BranchList({ isDrawerOpen }) {
         />
       </Box>
 
-      {/* Total Count */}
-      <Box display="flex" justifyContent="left" mt={2}>
-        <Typography variant="subtitle1">کۆی گشتی لقەکان: {filteredBranches.length}</Typography>
+      {/* Total Count and Total Wallet on one row */}
+      <Box display="flex" justifyContent="left" alignItems="center" gap={4} mt={2}>
+        <Typography variant="subtitle1">
+          کۆی گشتی لقەکان: {filteredBranches.length}
+        </Typography>
+        <Typography variant="subtitle1">
+          کۆی گشتی قاصەکان: {totalWallet.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+        </Typography>
       </Box>
 
       {/* Delete Confirmation Dialog */}

@@ -173,9 +173,8 @@ const Sidebar = () => {
                   <ListItemText inset primary="نرخی دراوەکان" sx={getTextStyles()} />
                 </ListItem>
               </List>
+              <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>
-
-            <Divider sx={{ backgroundColor: 'white' }} />
 
             {/* Expenses Section */}
             <ListItem button onClick={handleExpensesNestedToggle} aria-expanded={nestedExpensesOpen}>
@@ -194,12 +193,13 @@ const Sidebar = () => {
                   <ListItemText inset primary="گرووپەکان" sx={getTextStyles()} />
                 </ListItem>
               </List>
+                <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>
 
-            <Divider sx={{ backgroundColor: 'white' }} />
 
             {/* Company Section */}
-            <ListItem button onClick={handleCompanyNestedToggle} aria-expanded={nestedCompanyOpen}>
+
+          <ListItem button onClick={handleCompanyNestedToggle} aria-expanded={nestedCompanyOpen}>
               <ListItemIcon sx={{ color: 'white' }}>
                 <Settings />
               </ListItemIcon>
@@ -207,7 +207,7 @@ const Sidebar = () => {
               {nestedCompanyOpen ? <ExpandLess sx={{ color: 'white' }} /> : <ExpandMore sx={{ color: 'white' }} />}
             </ListItem>
             <Collapse in={nestedCompanyOpen} timeout="auto" unmountOnExit>
-              <List component="div" disablePadding>
+                <List component="div" disablePadding>
                 <ListItem button component={Link} to="/company/">
                   <ListItemText inset primary="زانیاری کۆمپانیا" sx={getTextStyles()} />
                 </ListItem>
@@ -230,19 +230,20 @@ const Sidebar = () => {
                   <ListItemText inset primary="دراوەکان" sx={getTextStyles()} />
                 </ListItem>
               </List>
-              <Divider sx={{ backgroundColor: 'white' }} />
+                <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>
+
           </List>
         </Box>
 
-        <List>
+
           <ListItem button onClick={handleLogout} sx={{ cursor: 'pointer' }}>
             <ListItemIcon sx={{ color: 'white' }}>
               <Logout />
             </ListItemIcon>
             <ListItemText primary="چوونەدەرەوە" sx={{ color: 'white' }} />
           </ListItem>
-        </List>
+       
       </Drawer>
     </>
   );

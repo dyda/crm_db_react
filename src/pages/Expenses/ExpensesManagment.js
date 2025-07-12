@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axiosInstance from '../../components/service/axiosInstance';
 import {
   Card,
@@ -17,6 +17,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableFooter,
   Paper,
   Pagination,
   MenuItem,
@@ -31,6 +32,12 @@ import {
 } from '@mui/icons-material';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import { getCurrentUserId } from '../Authentication/auth';
+import DateRangeSelector from '../../components/utils/DateRangeSelector';
+import ExpensesPDF from '../../components/reports/expenses/ExpensesPDF';
+import DialogPdf from '../../components/utils/DialogPdf';
+import { BASE_URL } from '../../config/constants';
+
+
 
 function ExpensesManagment({ isDrawerOpen }) {
   // Today's date in yyyy-MM-dd format
@@ -38,17 +45,17 @@ function ExpensesManagment({ isDrawerOpen }) {
     .toISOString()
     .slice(0, 10);
 
- const initialFormData = {
-  employee_id: '',
-  category_id: '',
-  name: '',
-  amount: '',
-  note: '',
-  branch_id: '',
-  currency_id: '',
-  expense_date: today,
-  search: '',
-};
+  const initialFormData = {
+    employee_id: '',
+    category_id: '',
+    name: '',
+    amount: '',
+    note: '',
+    branch_id: '',
+    currency_id: '',
+    expense_date: today,
+    search: '',
+  };
 
   const rowsPerPage = 5;
 
@@ -67,14 +74,53 @@ function ExpensesManagment({ isDrawerOpen }) {
   const [selectedExpenseId, setSelectedExpenseId] = useState(null);
   const [fetching, setFetching] = useState(false);
   const [search, setSearch] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState({ mode: 'today', start: today, end: today });
+  const [filterBranchId, setFilterBranchId] = useState('');
+  const [filterEmployeeId, setFilterEmployeeId] = useState('');
+  const [filterCategoryId, setFilterCategoryId] = useState('');
+  const [openPdfPreview, setOpenPdfPreview] = useState(false);
+    const [company, setCompany] = useState(null);
 
-  // Fetch all needed data
-useEffect(() => {
-  setFormData((prev) => ({ ...initialFormData, user_id: getCurrentUserId() }));
-  fetchAllData();
-  fetchExpenses();
-  // eslint-disable-next-line
-}, []);
+  // Calculate sum by currency for current page
+  const currentExpenses = expenses.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  const sumByCurrency = useMemo(() => {
+    const sums = {};
+    currentExpenses.forEach((expense) => {
+      const currency = currencies.find((cur) => cur.id === expense.currency_id);
+      const symbol = currency?.symbol || '';
+      const key = symbol || expense.currency_id || '';
+      const amount = Number(expense.amount || 0);
+      if (!sums[key]) sums[key] = 0;
+      sums[key] += amount;
+    });
+    return sums;
+  }, [currentExpenses, currencies]);
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...initialFormData, user_id: getCurrentUserId() }));
+    fetchAllData();
+    fetchExpenses();
+    fetchCompanyInfo();
+    // eslint-disable-next-line
+  }, []);
+
+    const fetchCompanyInfo = async () => {
+    try {
+      const res = await axiosInstance.get('company/last-insert-id');
+      if (res.data.id) {
+        const companyRes = await axiosInstance.get(`company/show/${res.data.id}`);
+       setCompany({
+          ...companyRes.data,
+          logo_1: companyRes.data.logo_1
+            ? `${BASE_URL}${companyRes.data.logo_1}`
+            : '',
+        });
+      }
+    } catch (e) {
+      setCompany(null);
+    }
+  };
 
   const fetchAllData = async () => {
     setFetching(true);
@@ -97,42 +143,56 @@ useEffect(() => {
   };
 
   function formatNumberWithCommas(value) {
-  if (!value) return '';
-  const parts = value.toString().split('.');
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-  return parts.join('.');
-}
+    if (!value) return '';
+    const parts = value.toString().split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    return parts.join('.');
+  }
 
-  const fetchExpenses = async (searchValue = '') => {
-    setFetching(true);
-    try {
-      let response;
-      if (searchValue.trim()) {
-        response = await axiosInstance.get('/expenses/filter', {
-          params: { name: searchValue, note: searchValue },
-        });
+    const fetchExpenses = async (
+      searchValue = '',
+      dateRange = filterDateRange,
+      branchId = formData.branch_id,
+      employeeId = formData.employee_id,
+      categoryId = formData.category_id
+    ) => {
+      setFetching(true);
+      try {
+        let params = {};
+        if (searchValue.trim()) {
+          params.name = searchValue;
+          params.note = searchValue;
+          if (!isNaN(searchValue)) {
+            params.id = searchValue;
+          }
+        }
+        if (dateRange.start) params.startDate = dateRange.start;
+        if (dateRange.end) params.endDate = dateRange.end;
+        if (branchId) params.branch_id = branchId;
+        if (employeeId) params.employee_id = employeeId;
+        if (categoryId) params.category_id = categoryId;
+
+        // Always use /expenses/filter, even if params is empty
+        const response = await axiosInstance.get('/expenses/filter', { params });
+        
         setExpenses(response.data.expenses || []);
-      } else {
-        response = await axiosInstance.get('/expenses/index');
-        setExpenses(response.data || []);
+      } catch (error) {
+        setErrorMessage('هەڵە ڕوویدا لە بارکردنی زانیاری');
+      } finally {
+        setFetching(false);
       }
-    } catch (error) {
-      setErrorMessage('هەڵە ڕوویدا لە بارکردنی زانیاری');
-    } finally {
-      setFetching(false);
-    }
+    };
+
+  const handleDateRangeChange = (range) => {
+    setFilterDateRange(range);
+    fetchExpenses(search, range);
   };
 
   const handleSearchChange = async (e) => {
     const value = e.target.value;
     setSearch(value);
-    if (!value.trim()) {
-      fetchExpenses();
-      return;
-    }
-    fetchExpenses(value);
+    fetchExpenses(value, filterDateRange);
   };
-
 
   // Submit form
   const handleSubmit = async (e) => {
@@ -186,7 +246,7 @@ useEffect(() => {
     } finally {
       setLoading(false);
     }
-};
+  };
 
   const handleEditClick = async (expense) => {
     setSelectedExpenseId(expense.id);
@@ -204,7 +264,9 @@ useEffect(() => {
         branch_id: data.branch_id || '',
         user_id: getCurrentUserId(),
         currency_id: data.currency_id || '',
-        expense_date: data.expense_date || today,
+        expense_date: data.expense_date
+          ? new Date(data.expense_date).toISOString().slice(0, 10)
+          : today,
         search: '',
       });
     } catch (error) {
@@ -237,7 +299,6 @@ useEffect(() => {
     }
   };
 
-  const currentExpenses = expenses.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
   const handlePageChange = (_, value) => setCurrentPage(value);
   const handleSnackbarClose = () => setSuccess(false);
   const handleErrorSnackbarClose = () => setErrorMessage('');
@@ -264,7 +325,6 @@ useEffect(() => {
               {selectedExpenseId ? 'گۆڕینی مەسرووفات' : 'زیادکردنی مەسرووفات'}
             </Typography>
             <form onSubmit={handleSubmit}>
-          
               <TextField
                 select
                 fullWidth
@@ -303,54 +363,54 @@ useEffect(() => {
                 }}
               />
 
-            <Grid container spacing={2} sx={{ mb: 2 }}>
-              <Grid item xs={8}>
-                 <TextField
-                      fullWidth
-                      label="بڕ"
-                      name="amount"
-                      type="text"
-                      value={formatNumberWithCommas(formData.amount)}
-                      onChange={(e) => {
-                        // Remove commas for storage, allow only numbers and decimals
-                        const rawValue = e.target.value.replace(/,/g, '');
-                        if (!/^\d*\.?\d*$/.test(rawValue)) return;
-                        handleChangeWithErrorReset({
-                          target: { name: 'amount', value: rawValue }
-                        });
-                      }}
-                      error={!!formErrors.amount}
-                      helperText={formErrors.amount}
-                      InputProps={{
-                        endAdornment: formData.amount && (
-                          <InputAdornment position="end">
-                            <IconButton onClick={() => clearSelectField('amount')}>
-                              <ClearIcon />
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={8}>
+                  <TextField
+                    fullWidth
+                    label="بڕ"
+                    name="amount"
+                    type="text"
+                    value={formatNumberWithCommas(formData.amount)}
+                    onChange={(e) => {
+                      // Remove commas for storage, allow only numbers and decimals
+                      const rawValue = e.target.value.replace(/,/g, '');
+                      if (!/^\d*\.?\d*$/.test(rawValue)) return;
+                      handleChangeWithErrorReset({
+                        target: { name: 'amount', value: rawValue }
+                      });
+                    }}
+                    error={!!formErrors.amount}
+                    helperText={formErrors.amount}
+                    InputProps={{
+                      endAdornment: formData.amount && (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => clearSelectField('amount')}>
+                            <ClearIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={4}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="دراو"
+                    name="currency_id"
+                    value={formData.currency_id}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.currency_id}
+                    helperText={formErrors.currency_id}
+                  >
+                    {currencies.map((cur) => (
+                      <MenuItem key={cur.id} value={cur.id}>
+                        {cur.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
               </Grid>
-              <Grid item xs={4}>
-                <TextField
-                  select
-                  fullWidth
-                  label="دراو"
-                  name="currency_id"
-                  value={formData.currency_id}
-                  onChange={handleChangeWithErrorReset}
-                  error={!!formErrors.currency_id}
-                  helperText={formErrors.currency_id}
-                >
-                  {currencies.map((cur) => (
-                    <MenuItem key={cur.id} value={cur.id}>
-                      {cur.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              </Grid>
-            </Grid>
 
               <TextField
                 fullWidth
@@ -361,44 +421,44 @@ useEffect(() => {
                 sx={{ mb: 2 }}
               />
 
-               <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={6}>
-                      <TextField
-                        select
-                        fullWidth
-                        label="کارمەند"
-                        name="employee_id"
-                        value={formData.employee_id}
-                        onChange={handleChangeWithErrorReset}
-                        error={!!formErrors.employee_id}
-                        helperText={formErrors.employee_id}
-                      >
-                        {employees.map((emp) => (
-                          <MenuItem key={emp.id} value={emp.id}>
-                            {emp.name}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <TextField
-                        select
-                        fullWidth
-                        label="لق"
-                        name="branch_id"
-                        value={formData.branch_id}
-                        onChange={handleChangeWithErrorReset}
-                        error={!!formErrors.branch_id}
-                        helperText={formErrors.branch_id}
-                      >
-                        {branches.map((branch) => (
-                          <MenuItem key={branch.id} value={branch.id}>
-                            {branch.name}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    </Grid>
-                  </Grid>
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="کارمەند"
+                    name="employee_id"
+                    value={formData.employee_id}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.employee_id}
+                    helperText={formErrors.employee_id}
+                  >
+                    {employees.map((emp) => (
+                      <MenuItem key={emp.id} value={emp.id}>
+                        {emp.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="لق"
+                    name="branch_id"
+                    value={formData.branch_id}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.branch_id}
+                    helperText={formErrors.branch_id}
+                  >
+                    {branches.map((branch) => (
+                      <MenuItem key={branch.id} value={branch.id}>
+                        {branch.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              </Grid>
 
               <TextField
                 fullWidth
@@ -413,37 +473,35 @@ useEffect(() => {
                 InputLabelProps={{ shrink: true }}
               />
 
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-
-                    <Grid item xs={8}>
-                      <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        color="success"
-                        disabled={loading}
-                      >
-                        {loading ? 'Loading...' : selectedExpenseId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                      </Button>
-                    </Grid>
-                    <Grid item xs={4}>
-                      <Button
-                          type="button"
-                          fullWidth
-                          variant="contained"
-                          color="info"
-                          onClick={() => {
-                            setFormData({ ...initialFormData, user_id: getCurrentUserId() });
-                            setFormErrors({});
-                            setSelectedExpenseId(null);
-                            setErrorMessage('');
-                          }}
-                        >
-                          پاکردنەوە
-                        </Button>
-                    </Grid>
-                  </Grid>        
-
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={8}>
+                  <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    color="success"
+                    disabled={loading}
+                  >
+                    {loading ? 'چاوەڕوان بە...' : selectedExpenseId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                  </Button>
+                </Grid>
+                <Grid item xs={4}>
+                  <Button
+                    type="button"
+                    fullWidth
+                    variant="contained"
+                    color="info"
+                    onClick={() => {
+                      setFormData({ ...initialFormData, user_id: getCurrentUserId() });
+                      setFormErrors({});
+                      setSelectedExpenseId(null);
+                      setErrorMessage('');
+                    }}
+                  >
+                    پاکردنەوە
+                  </Button>
+                </Grid>
+              </Grid>
             </form>
           </Card>
         </Grid>
@@ -451,27 +509,103 @@ useEffect(() => {
         {/* Table Section */}
         <Grid item xs={12} md={8}>
           <Card sx={{ margin: 1, padding: 2 }}>
+
             {/* Search Field */}
-            <TextField
-              fullWidth
-              label="گەڕان"
-              name="search"
-              value={search}
-              onChange={handleSearchChange}
-              placeholder="ناو یان تێبینی..."
-              sx={{ mb: 2 }}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <Tooltip title="هەموو داتاکان">
-                      <IconButton onClick={() => { setSearch(''); fetchExpenses(); }}>
-                        <SearchIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </InputAdornment>
-                ),
-              }}
-            />
+             <Box sx={{ mb: 2 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    fullWidth
+                    label="گەڕان"
+                    name="search"
+                    value={search}
+                    onChange={handleSearchChange}
+                    placeholder="ناو یان تێبینی..."
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <Tooltip title="هەموو داتاکان">
+                            <IconButton onClick={() => { setSearch(''); fetchExpenses(); }}>
+                              <SearchIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="لق"
+                    value={filterBranchId}
+                     onChange={e => {
+                        setFilterBranchId(e.target.value);
+                        fetchExpenses(search, filterDateRange, e.target.value, filterEmployeeId, filterCategoryId);
+                      }}
+                  >
+                    <MenuItem value="">هەموو لقەکان</MenuItem>
+                    {branches.map(branch => (
+                      <MenuItem key={branch.id} value={branch.id}>{branch.name}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="کارمەند"
+                    value={filterEmployeeId || ''}
+                    onChange={e => {
+                      setFilterEmployeeId(e.target.value);
+                      fetchExpenses(search, filterDateRange, filterBranchId, e.target.value, filterCategoryId);
+                    }}
+                  >
+                    <MenuItem value="">هەموو کارمەندان</MenuItem>
+                    {employees.map(emp => (
+                      <MenuItem key={emp.id} value={emp.id}>{emp.name}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="گرووپ"
+                    value={filterCategoryId}
+                    onChange={e => {
+                      setFilterCategoryId(e.target.value);
+                      fetchExpenses(search, filterDateRange, filterBranchId, filterEmployeeId, e.target.value);
+                    }}
+                  >
+                    <MenuItem value="">هەموو گرووپەکان</MenuItem>
+                    {categories.map(cat => (
+                      <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+              </Grid>
+              <Box sx={{ mt: 2 }}>
+                  <Grid container spacing={2} alignItems="center">
+                    <Grid item xs={12} md={9}>
+                      <DateRangeSelector value={filterDateRange} onChange={handleDateRangeChange} />
+                    </Grid>
+                    <Grid item xs={12} md={3}>
+                      <Button
+                            variant="contained"
+                            color="secondary"
+                            onClick={() => setOpenPdfPreview(true)}
+                            sx={{ minWidth: '100%' }}
+                          >
+                            ڕاپۆرت
+                          </Button>
+                    </Grid>
+                  </Grid>
+                </Box>
+
+            </Box>
+
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
@@ -480,9 +614,9 @@ useEffect(() => {
                     <TableCell>گرووپ</TableCell>
                     <TableCell>ناو</TableCell>
                     <TableCell>بڕ</TableCell>
-                     <TableCell>کارمەند</TableCell>
+                    <TableCell>کارمەند</TableCell>
                     <TableCell>لق</TableCell>
-                     <TableCell>تێبینی</TableCell>
+                    <TableCell>تێبینی</TableCell>
                     <TableCell>بەروار</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
@@ -498,16 +632,14 @@ useEffect(() => {
                     currentExpenses.map((expense) => (
                       <TableRow key={expense.id}>
                         <TableCell>{expense.id}</TableCell>
-                        
                         <TableCell>
                           {categories.find((c) => c.id === expense.category_id)?.name || expense.category_id}
                         </TableCell>
                         <TableCell>{expense.name}</TableCell>
                         {/* Amount with symbol */}
-                       <TableCell>
-                            {`${currencies.find((cur) => cur.id === expense.currency_id)?.symbol || ''}${formatNumberWithCommas(expense.amount)}`}
-                          </TableCell>
-
+                        <TableCell>
+                          {`${currencies.find((cur) => cur.id === expense.currency_id)?.symbol || ''}${formatNumberWithCommas(expense.amount)}`}
+                        </TableCell>
                         <TableCell>
                           {employees.find((e) => e.id === expense.employee_id)?.name || expense.employee_id}
                         </TableCell>
@@ -516,9 +648,8 @@ useEffect(() => {
                         </TableCell>
                         <TableCell>{expense.note}</TableCell>
                         <TableCell>
-                            {new Date(expense.expense_date).toLocaleDateString('en-GB')}
-                          </TableCell>
-
+                          {new Date(expense.expense_date).toLocaleDateString('en-GB')}
+                        </TableCell>
                         <TableCell>
                           <IconButton color="primary" onClick={() => handleEditClick(expense)}>
                             <EditIcon />
@@ -537,6 +668,20 @@ useEffect(() => {
                     </TableRow>
                   )}
                 </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={3} align="right" sx={{ fontWeight: 'bold' }}>
+                      کۆی گشتی بڕ:
+                    </TableCell>
+                    <TableCell colSpan={6} align="left" sx={{ fontWeight: 'bold' }}>
+                      {Object.entries(sumByCurrency).map(([symbol, total]) => (
+                        <span key={symbol} style={{ marginRight: 16 }}>
+                          {symbol}{formatNumberWithCommas(total)}
+                        </span>
+                      ))}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
               </Table>
             </TableContainer>
             <Box mt={2} display="flex" justifyContent="center">
@@ -552,6 +697,23 @@ useEffect(() => {
           </Card>
         </Grid>
       </Grid>
+
+
+   <DialogPdf
+  open={openPdfPreview}
+  onClose={() => setOpenPdfPreview(false)}
+  document={
+    <ExpensesPDF
+      expenses={expenses}
+      categories={categories}
+      branches={branches}
+      employees={employees}
+      currencies={currencies}
+       company={company} 
+    />
+  }
+  fileName="expenses_report.pdf"
+/>
 
       {/* Delete Dialog */}
       <ConfirmDialog
