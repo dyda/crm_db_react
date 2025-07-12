@@ -17,13 +17,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 14,
-    marginBottom: 12,
+    marginBottom: 8,
     textAlign: 'center',
   },
   table: {
     display: 'table',
     width: 'auto',
-    marginVertical: 10,
+    marginVertical: 5,
     direction: 'rtl',
   },
   row: {
@@ -117,6 +117,10 @@ function getSumByCurrency(expenses, currencies) {
   });
   return sums;
 }
+function formatNumberWithCommas(value) {
+  if (value === null || value === undefined) return '';
+  return Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
 
 // 4. Main component
 const ExpensesPDF = ({ expenses, categories, branches, employees, currencies, company }) => {
@@ -165,7 +169,7 @@ const ExpensesPDF = ({ expenses, categories, branches, employees, currencies, co
               <Text style={[styles.cell, styles.col2]}>{categories.find(c => c.id === exp.category_id)?.name || ''}</Text>
               <Text style={[styles.cell, styles.col3]}>{exp.name}</Text>
               <Text style={[styles.cell, styles.col4]}>
-                {(currencies.find(cur => cur.id === exp.currency_id)?.symbol || '') + exp.amount}
+                {(currencies.find(cur => cur.id === exp.currency_id)?.symbol || '') + formatNumberWithCommas(exp.amount)}
               </Text>
               <Text style={[styles.cell, styles.col5]}>{employees.find(e => e.id === exp.employee_id)?.name || ''}</Text>
               <Text style={[styles.cell, styles.col6]}>{branches.find(b => b.id === exp.branch_id)?.name || ''}</Text>

@@ -30,14 +30,14 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon,
 } from '@mui/icons-material';
+import TableSortLabel from '@mui/material/TableSortLabel';
+
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import { getCurrentUserId } from '../Authentication/auth';
 import DateRangeSelector from '../../components/utils/DateRangeSelector';
 import ExpensesPDF from '../../components/reports/expenses/ExpensesPDF';
 import DialogPdf from '../../components/utils/DialogPdf';
 import { BASE_URL } from '../../config/constants';
-
-
 
 function ExpensesManagment({ isDrawerOpen }) {
   // Today's date in yyyy-MM-dd format
@@ -79,10 +79,14 @@ function ExpensesManagment({ isDrawerOpen }) {
   const [filterEmployeeId, setFilterEmployeeId] = useState('');
   const [filterCategoryId, setFilterCategoryId] = useState('');
   const [openPdfPreview, setOpenPdfPreview] = useState(false);
-    const [company, setCompany] = useState(null);
+  const [company, setCompany] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [sortBy, setSortBy] = useState('expense_date');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [reportExpenses, setReportExpenses] = useState([]);
 
   // Calculate sum by currency for current page
-  const currentExpenses = expenses.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  const currentExpenses = expenses;
 
   const sumByCurrency = useMemo(() => {
     const sums = {};
@@ -105,12 +109,12 @@ function ExpensesManagment({ isDrawerOpen }) {
     // eslint-disable-next-line
   }, []);
 
-    const fetchCompanyInfo = async () => {
+  const fetchCompanyInfo = async () => {
     try {
       const res = await axiosInstance.get('company/last-insert-id');
       if (res.data.id) {
         const companyRes = await axiosInstance.get(`company/show/${res.data.id}`);
-       setCompany({
+        setCompany({
           ...companyRes.data,
           logo_1: companyRes.data.logo_1
             ? `${BASE_URL}${companyRes.data.logo_1}`
@@ -142,6 +146,34 @@ function ExpensesManagment({ isDrawerOpen }) {
     }
   };
 
+  const fetchAllExpensesForReport = async () => {
+    try {
+      let params = {
+        // Do NOT include page or pageSize
+        sortBy,
+        sortOrder,
+      };
+      if (search.trim()) {
+        params.name = search;
+        params.note = search;
+        if (!isNaN(search)) {
+          params.id = search;
+        }
+      }
+      if (filterDateRange.start) params.startDate = filterDateRange.start;
+      if (filterDateRange.end) params.endDate = filterDateRange.end;
+      if (filterBranchId) params.branch_id = filterBranchId;
+      if (filterEmployeeId) params.employee_id = filterEmployeeId;
+      if (filterCategoryId) params.category_id = filterCategoryId;
+
+      const response = await axiosInstance.get('/expenses/filter', { params });
+      return response.data.expenses || [];
+    } catch (error) {
+      setErrorMessage('هەڵە ڕوویدا لە بارکردنی هەموو داتا');
+      return [];
+    }
+  };
+
   function formatNumberWithCommas(value) {
     if (!value) return '';
     const parts = value.toString().split('.');
@@ -149,52 +181,67 @@ function ExpensesManagment({ isDrawerOpen }) {
     return parts.join('.');
   }
 
-    const fetchExpenses = async (
-      searchValue = '',
-      dateRange = filterDateRange,
-      branchId = formData.branch_id,
-      employeeId = formData.employee_id,
-      categoryId = formData.category_id
-    ) => {
-      setFetching(true);
-      try {
-        let params = {};
-        if (searchValue.trim()) {
-          params.name = searchValue;
-          params.note = searchValue;
-          if (!isNaN(searchValue)) {
-            params.id = searchValue;
-          }
+  const fetchExpenses = async (
+    searchValue = '',
+    dateRange = filterDateRange,
+    branchId = filterBranchId,
+    employeeId = filterEmployeeId,
+    categoryId = filterCategoryId,
+    page = currentPage,
+    pageSize = rowsPerPage,
+    sortField = sortBy,
+    sortDirection = sortOrder
+  ) => {
+    setFetching(true);
+    try {
+      let params = {
+        page,
+        pageSize,
+        sortBy: sortField,
+        sortOrder: sortDirection,
+      };
+      if (searchValue.trim()) {
+        params.name = searchValue;
+        params.note = searchValue;
+        if (!isNaN(searchValue)) {
+          params.id = searchValue;
         }
-        if (dateRange.start) params.startDate = dateRange.start;
-        if (dateRange.end) params.endDate = dateRange.end;
-        if (branchId) params.branch_id = branchId;
-        if (employeeId) params.employee_id = employeeId;
-        if (categoryId) params.category_id = categoryId;
-
-        // Always use /expenses/filter, even if params is empty
-        const response = await axiosInstance.get('/expenses/filter', { params });
-        
-        setExpenses(response.data.expenses || []);
-      } catch (error) {
-        setErrorMessage('هەڵە ڕوویدا لە بارکردنی زانیاری');
-      } finally {
-        setFetching(false);
       }
-    };
+      if (dateRange.start) params.startDate = dateRange.start;
+      if (dateRange.end) params.endDate = dateRange.end;
+      if (branchId) params.branch_id = branchId;
+      if (employeeId) params.employee_id = employeeId;
+      if (categoryId) params.category_id = categoryId;
+
+      const response = await axiosInstance.get('/expenses/filter', { params });
+      setExpenses(response.data.expenses || []);
+      setTotalCount(response.data.total || 0);
+    } catch (error) {
+      setErrorMessage('هەڵە ڕوویدا لە بارکردنی زانیاری');
+    } finally {
+      setFetching(false);
+    }
+  };
 
   const handleDateRangeChange = (range) => {
     setFilterDateRange(range);
-    fetchExpenses(search, range);
+    setCurrentPage(1);
+    fetchExpenses(search, range, filterBranchId, filterEmployeeId, filterCategoryId, 1);
   };
 
-  const handleSearchChange = async (e) => {
+  const handleOpenPdfPreview = async () => {
+    const allExpenses = await fetchAllExpensesForReport();
+    setReportExpenses(allExpenses);
+    setOpenPdfPreview(true);
+  };
+
+  const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearch(value);
-    fetchExpenses(value, filterDateRange);
+    setCurrentPage(1);
+    fetchExpenses(value, filterDateRange, filterBranchId, filterEmployeeId, filterCategoryId, 1);
   };
 
-  // Submit form
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -217,10 +264,10 @@ function ExpensesManagment({ isDrawerOpen }) {
 
     try {
       const { search, ...rest } = formData;
-      const payload = { 
-        ...rest, 
+      const payload = {
+        ...rest,
         user_id: getCurrentUserId(),
-        amount: Number(formData.amount.toString().replace(/,/g, '')) 
+        amount: Number(formData.amount.toString().replace(/,/g, '')),
       };
 
       let response;
@@ -237,7 +284,14 @@ function ExpensesManagment({ isDrawerOpen }) {
         setSelectedExpenseId(null);
         setFormErrors({});
         setCurrentPage(1);
-        fetchExpenses(search);
+        fetchExpenses(
+          search,
+          filterDateRange,
+          filterBranchId,
+          filterEmployeeId,
+          filterCategoryId,
+          1
+        );
       }
     } catch (error) {
       setErrorMessage(
@@ -264,9 +318,7 @@ function ExpensesManagment({ isDrawerOpen }) {
         branch_id: data.branch_id || '',
         user_id: getCurrentUserId(),
         currency_id: data.currency_id || '',
-        expense_date: data.expense_date
-          ? new Date(data.expense_date).toISOString().slice(0, 10)
-          : today,
+        expense_date: data.expense_date ? data.expense_date : today,
         search: '',
       });
     } catch (error) {
@@ -292,17 +344,55 @@ function ExpensesManagment({ isDrawerOpen }) {
         setFormData(initialFormData);
         setSelectedExpenseId(null);
         setFormErrors({});
-        fetchExpenses(search);
+        setCurrentPage(1);
+        fetchExpenses(
+          search,
+          filterDateRange,
+          filterBranchId,
+          filterEmployeeId,
+          filterCategoryId,
+          1
+        );
       }
     } catch (error) {
       setErrorMessage('هەڵە ڕوویدا لە سڕینەوە');
     }
   };
 
-  const handlePageChange = (_, value) => setCurrentPage(value);
+  const handlePageChange = (_, value) => {
+    setCurrentPage(value);
+    fetchExpenses(
+      search,
+      filterDateRange,
+      filterBranchId,
+      filterEmployeeId,
+      filterCategoryId,
+      value,
+      rowsPerPage
+    );
+  };
+
   const handleSnackbarClose = () => setSuccess(false);
   const handleErrorSnackbarClose = () => setErrorMessage('');
   const handleDialogClose = () => setOpenDialog(false);
+
+  const handleSort = (field) => {
+    const isAsc = sortBy === field && sortOrder === 'asc';
+    setSortBy(field);
+    setSortOrder(isAsc ? 'desc' : 'asc');
+    setCurrentPage(1);
+    fetchExpenses(
+      search,
+      filterDateRange,
+      filterBranchId,
+      filterEmployeeId,
+      filterCategoryId,
+      1,
+      rowsPerPage,
+      field,
+      isAsc ? 'desc' : 'asc'
+    );
+  };
 
   const handleChangeWithErrorReset = (e) => {
     setErrorMessage('');
@@ -487,19 +577,32 @@ function ExpensesManagment({ isDrawerOpen }) {
                 </Grid>
                 <Grid item xs={4}>
                   <Button
-                    type="button"
-                    fullWidth
-                    variant="contained"
-                    color="info"
-                    onClick={() => {
-                      setFormData({ ...initialFormData, user_id: getCurrentUserId() });
-                      setFormErrors({});
-                      setSelectedExpenseId(null);
-                      setErrorMessage('');
-                    }}
-                  >
-                    پاکردنەوە
-                  </Button>
+                          type="button"
+                          fullWidth
+                          variant="contained"
+                          color="info"
+                      onClick={() => {
+                            setFormData({ ...initialFormData, user_id: getCurrentUserId() });
+                            setFormErrors({});
+                            setSelectedExpenseId(null);
+                            setErrorMessage('');
+                            setSearch('');
+                            setFilterBranchId('');
+                            setFilterEmployeeId('');
+                            setFilterCategoryId('');
+                            setCurrentPage(1);
+                            fetchExpenses(
+                              '', // search
+                              filterDateRange, // keep the current date range
+                              '', // branch
+                              '', // employee
+                              '', // category
+                              1 // page
+                            );
+                          }}
+                        >
+                          پاکردنەوە
+                        </Button>
                 </Grid>
               </Grid>
             </form>
@@ -509,9 +612,8 @@ function ExpensesManagment({ isDrawerOpen }) {
         {/* Table Section */}
         <Grid item xs={12} md={8}>
           <Card sx={{ margin: 1, padding: 2 }}>
-
-            {/* Search Field */}
-             <Box sx={{ mb: 2 }}>
+            {/* Search/Filter Controls */}
+            <Box sx={{ mb: 2 }}>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={3}>
                   <TextField
@@ -540,10 +642,11 @@ function ExpensesManagment({ isDrawerOpen }) {
                     fullWidth
                     label="لق"
                     value={filterBranchId}
-                     onChange={e => {
-                        setFilterBranchId(e.target.value);
-                        fetchExpenses(search, filterDateRange, e.target.value, filterEmployeeId, filterCategoryId);
-                      }}
+                    onChange={e => {
+                      setFilterBranchId(e.target.value);
+                      setCurrentPage(1);
+                      fetchExpenses(search, filterDateRange, e.target.value, filterEmployeeId, filterCategoryId, 1);
+                    }}
                   >
                     <MenuItem value="">هەموو لقەکان</MenuItem>
                     {branches.map(branch => (
@@ -559,7 +662,8 @@ function ExpensesManagment({ isDrawerOpen }) {
                     value={filterEmployeeId || ''}
                     onChange={e => {
                       setFilterEmployeeId(e.target.value);
-                      fetchExpenses(search, filterDateRange, filterBranchId, e.target.value, filterCategoryId);
+                      setCurrentPage(1);
+                      fetchExpenses(search, filterDateRange, filterBranchId, e.target.value, filterCategoryId, 1);
                     }}
                   >
                     <MenuItem value="">هەموو کارمەندان</MenuItem>
@@ -576,7 +680,8 @@ function ExpensesManagment({ isDrawerOpen }) {
                     value={filterCategoryId}
                     onChange={e => {
                       setFilterCategoryId(e.target.value);
-                      fetchExpenses(search, filterDateRange, filterBranchId, filterEmployeeId, e.target.value);
+                      setCurrentPage(1);
+                      fetchExpenses(search, filterDateRange, filterBranchId, filterEmployeeId, e.target.value, 1);
                     }}
                   >
                     <MenuItem value="">هەموو گرووپەکان</MenuItem>
@@ -587,38 +692,85 @@ function ExpensesManagment({ isDrawerOpen }) {
                 </Grid>
               </Grid>
               <Box sx={{ mt: 2 }}>
-                  <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} md={9}>
-                      <DateRangeSelector value={filterDateRange} onChange={handleDateRangeChange} />
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                      <Button
-                            variant="contained"
-                            color="secondary"
-                            onClick={() => setOpenPdfPreview(true)}
-                            sx={{ minWidth: '100%' }}
-                          >
-                            ڕاپۆرت
-                          </Button>
-                    </Grid>
+                <Grid container spacing={2} alignItems="center">
+                  <Grid item xs={12} md={9}>
+                    <DateRangeSelector value={filterDateRange} onChange={handleDateRangeChange} />
                   </Grid>
-                </Box>
-
+                  <Grid item xs={12} md={3}>
+                    <Button
+                      variant="contained"
+                      color="secondary"
+                      onClick={handleOpenPdfPreview}
+                      sx={{ minWidth: '100%' }}
+                    >
+                      ڕاپۆرت
+                    </Button>
+                  </Grid>
+                </Grid>
+              </Box>
             </Box>
 
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>گرووپ</TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortBy === 'id'}
+                        direction={sortBy === 'id' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('id')}
+                      >
+                        #
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortBy === 'category_id'}
+                        direction={sortBy === 'category_id' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('category_id')}
+                      >
+                        گرووپ
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell>ناو</TableCell>
-                    <TableCell>بڕ</TableCell>
-                    <TableCell>کارمەند</TableCell>
-                    <TableCell>لق</TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortBy === 'amount'}
+                        direction={sortBy === 'amount' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('amount')}
+                      >
+                        بڕ
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortBy === 'employee_id'}
+                        direction={sortBy === 'employee_id' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('employee_id')}
+                      >
+                        کارمەند
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortBy === 'branch_id'}
+                        direction={sortBy === 'branch_id' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('branch_id')}
+                      >
+                        لق
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell>تێبینی</TableCell>
-                    <TableCell>بەروار</TableCell>
-                    <TableCell>Action</TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={sortBy === 'expense_date'}
+                        direction={sortBy === 'expense_date' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('expense_date')}
+                      >
+                        بەروار
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>ئیش</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -687,7 +839,7 @@ function ExpensesManagment({ isDrawerOpen }) {
             <Box mt={2} display="flex" justifyContent="center">
               {expenses.length > 0 && (
                 <Pagination
-                  count={Math.ceil(expenses.length / rowsPerPage)}
+                  count={Math.ceil(totalCount / rowsPerPage)}
                   page={currentPage}
                   onChange={handlePageChange}
                   color="primary"
@@ -698,22 +850,21 @@ function ExpensesManagment({ isDrawerOpen }) {
         </Grid>
       </Grid>
 
-
-   <DialogPdf
-  open={openPdfPreview}
-  onClose={() => setOpenPdfPreview(false)}
-  document={
-    <ExpensesPDF
-      expenses={expenses}
-      categories={categories}
-      branches={branches}
-      employees={employees}
-      currencies={currencies}
-       company={company} 
-    />
-  }
-  fileName="expenses_report.pdf"
-/>
+      <DialogPdf
+        open={openPdfPreview}
+        onClose={() => setOpenPdfPreview(false)}
+        document={
+          <ExpensesPDF
+            expenses={reportExpenses}
+            categories={categories}
+            branches={branches}
+            employees={employees}
+            currencies={currencies}
+            company={company}
+          />
+        }
+        fileName="expenses_report.pdf"
+      />
 
       {/* Delete Dialog */}
       <ConfirmDialog
