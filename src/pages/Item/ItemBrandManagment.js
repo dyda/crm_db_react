@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Grid, Card, Typography, TextField, Button, IconButton, InputAdornment,
   Snackbar, Alert, CircularProgress, Table, TableHead, TableRow,
-  TableCell, TableBody, TableContainer, Paper, Pagination
+  TableCell, TableBody, TableFooter, TableContainer, Paper, Pagination
 } from '@mui/material';
 import {
   Clear as ClearIcon,
@@ -288,6 +288,17 @@ function ItemBrandManagment({ isDrawerOpen }) {
                     </TableRow>
                   )}
                 </TableBody>
+                  <TableFooter>
+            <TableRow>
+              <TableCell colSpan={2} align="right" sx={{ fontWeight: 'bold' }}>
+                ژمارەی گشتی :
+              </TableCell>
+              <TableCell colSpan={2} align="left" sx={{ fontWeight: 'bold' }}>
+                {brands.length}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+
               </Table>
             </TableContainer>
             {brands.length > rowsPerPage && (

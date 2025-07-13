@@ -1,25 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, Grid, Card, Typography, TextField, Button, IconButton, InputAdornment,
-  Snackbar, Alert, CircularProgress, Table, TableHead, TableRow,
+  Snackbar, Alert, CircularProgress, Table, TableHead, TableRow, TableFooter,
   TableCell, TableBody, TableContainer, Paper, Pagination, MenuItem, Avatar
 } from '@mui/material';
 import {
   Clear as ClearIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Search as SearchIcon,
   PriceCheck as PriceIcon,
   Warehouse as WarehouseIcon
 } from '@mui/icons-material';
+import TableSortLabel from '@mui/material/TableSortLabel';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
 import { BASE_URL } from '../../config/constants';
 import ItemPriceModal from './ItemPriceModal';
 import ItemQuantityModal from './ItemQuantityModal';
+import DialogPdf from '../../components/utils/DialogPdf';
+import ItemInfoPDF from '../../components/reports/item/ItemInfoPDF';
 
 function ItemManagment({ isDrawerOpen }) {
-   const initialFormData = {
+  // --- State ---
+  const initialFormData = {
     name: '',
     description: '',
     category_id: '',
@@ -31,10 +34,9 @@ function ItemManagment({ isDrawerOpen }) {
     allow_zero_sell: 1,
     search: '',
   };
+  const rowsPerPage = 10;
 
-  const rowsPerPage = 5;
-
-   const [formData, setFormData] = useState(initialFormData);
+  const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -54,60 +56,53 @@ function ItemManagment({ isDrawerOpen }) {
   const [quantityModalOpen, setQuantityModalOpen] = useState(false);
   const [quantityModalItem, setQuantityModalItem] = useState(null);
   const [warehouses, setWarehouses] = useState([]);
+  const [filterCategoryId, setFilterCategoryId] = useState('');
+  const [filterBrandId, setFilterBrandId] = useState('');
+  const [filterIsService, setFilterIsService] = useState('');
+  const [filterBarcode, setFilterBarcode] = useState('');
+  const [sortBy, setSortBy] = useState('id');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [totalCount, setTotalCount] = useState(0);
+  const [openPdfPreview, setOpenPdfPreview] = useState(false);
+  const [reportItems, setReportItems] = useState([]);
+  const [company, setCompany] = useState({});
 
+  // --- Effects ---
+  useEffect(() => {
+    fetchItems();
+    fetchCategories();
+    fetchBrands();
+    fetchPriceTypes();
+    fetchUnits();
+    fetchWarehouses();
+    fetchCompanyInfo();
+    // eslint-disable-next-line
+  }, [filterCategoryId, filterBrandId, filterIsService, filterBarcode, formData.search, currentPage, sortBy, sortOrder]);
 
-    // Image upload and preview
-  const handleImageUpload = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setFormData((prev) => ({
-          ...prev,
-          image: e.target.result, // base64 for preview
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-   const handleClearImage = () => {
-    setImageFile(null);
-    setFormData((prev) => ({ ...prev, image: '' }));
-  };
-
-
-
-useEffect(() => {
-  fetchAllData();
-  fetchCategories();
-  fetchBrands();
-  fetchPriceTypes();
-  fetchUnits();
-  fetchWarehouses();
-}, []);
-
-const fetchWarehouses = async () => {
-  const res = await axiosInstance.get('/warehouse/index');
-  setWarehouses(res.data || []);
-};
-
-    const fetchPriceTypes = async () => {
-      const res = await axiosInstance.get('/item-price-type/index');
-      setPriceTypes(res.data || []);
-    };
-    const fetchUnits = async () => {
-      const res = await axiosInstance.get('/item-unit/index');
-      setUnits(res.data || []);
-    };
-
-  const fetchAllData = async () => {
+  // --- Data Fetching ---
+  const fetchItems = async (
+    page = currentPage,
+    pageSize = rowsPerPage,
+    sortField = sortBy,
+    sortDirection = sortOrder
+  ) => {
     setFetching(true);
     try {
-      const res = await axiosInstance.get('/item/index');
-      setItems(res.data || []);
-    } catch (err) {
+      const params = {
+        page,
+        pageSize,
+        sortBy: sortField,
+        sortOrder: sortDirection,
+        category_id: filterCategoryId,
+        brand_id: filterBrandId,
+        isService: filterIsService,
+        barcode: filterBarcode,
+        name: formData.search,
+      };
+      const res = await axiosInstance.get('/item/filter', { params });
+      setItems(res.data.results || []);
+      setTotalCount(res.data.total || 0);
+    } catch {
       setErrorMessage('هەڵە ڕوویدا لە بارکردنی داتا');
     } finally {
       setFetching(false);
@@ -128,66 +123,120 @@ const fetchWarehouses = async () => {
     } catch {}
   };
 
-   const handleSubmit = async (e) => {
+  const fetchPriceTypes = async () => {
+    const res = await axiosInstance.get('/item-price-type/index');
+    setPriceTypes(res.data || []);
+  };
+
+  const fetchUnits = async () => {
+    const res = await axiosInstance.get('/item-unit/index');
+    setUnits(res.data || []);
+  };
+
+  const fetchWarehouses = async () => {
+    const res = await axiosInstance.get('/warehouse/index');
+    setWarehouses(res.data || []);
+  };
+
+  const fetchCompanyInfo = async () => {
+    try {
+      const res = await axiosInstance.get('company/last-insert-id');
+      if (res.data.id) {
+        const companyRes = await axiosInstance.get(`company/show/${res.data.id}`);
+        setCompany({
+          ...companyRes.data,
+          logo_1: companyRes.data.logo_1
+            ? `${BASE_URL}${companyRes.data.logo_1}`
+            : '',
+        });
+      }
+    } catch {
+      setCompany(null);
+    }
+  };
+
+  // --- Handlers: Form ---
+  const handleImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setFormData((prev) => ({
+          ...prev,
+          image: e.target.result,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClearImage = () => {
+    setImageFile(null);
+    setFormData((prev) => ({ ...prev, image: '' }));
+  };
+
+  const handleChangeWithErrorReset = (e) => {
+    const { name, value } = e.target;
+    setErrorMessage('');
+    setFormErrors(prev => ({ ...prev, [name]: '' }));
+    if (name === 'allow_zero_sell' || name === 'isService') {
+      setFormData(prev => ({ ...prev, [name]: Number(value) }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const clearSelectField = (field) => {
+    setFormData(prev => ({ ...prev, [field]: '' }));
+    setFormErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setErrorMessage('');
-
     const errors = {};
     if (!formData.name.trim()) errors.name = 'ناوی کاڵا پێویستە';
     if (!formData.cost) errors.cost = 'نرخی کاڵا پێویستە';
-
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
       setLoading(false);
       return;
     }
-
     try {
-
-         // Clean barcode before building payload
-  const cleanFormData = { ...formData };
-  if (!cleanFormData.barcode || cleanFormData.barcode.trim() === '') {
-    cleanFormData.barcode = null;
-  }
-
-
- let payload;
-  let config = {};
-  if (imageFile) {
-    payload = new FormData();
-    Object.entries(cleanFormData).forEach(([key, value]) => {
-      if (key !== 'image') payload.append(key, value);
-    });
-    payload.append('image', imageFile);
-    config.headers = { 'Content-Type': 'multipart/form-data' };
-  } else {
-    payload = { ...cleanFormData };
-    if (selectedItemId && cleanFormData.image) {
-      payload.image_url = cleanFormData.image;
-    }
-  }
-
-      const sendPayload = { ...payload };
+      const cleanFormData = { ...formData };
+      if (!cleanFormData.barcode || cleanFormData.barcode.trim() === '') {
+        cleanFormData.barcode = null;
+      }
+      let payload;
+      let config = {};
+      if (imageFile) {
+        payload = new FormData();
+        Object.entries(cleanFormData).forEach(([key, value]) => {
+          if (key !== 'image') payload.append(key, value);
+        });
+        payload.append('image', imageFile);
+        config.headers = { 'Content-Type': 'multipart/form-data' };
+      } else {
+        payload = { ...cleanFormData };
+        if (selectedItemId && cleanFormData.image) {
+          payload.image_url = cleanFormData.image;
+        }
+      }
       if (selectedItemId) {
         if (!imageFile && payload instanceof FormData) {
           payload.delete('image');
         }
       }
-
       let response;
       if (selectedItemId) {
         response = await axiosInstance.put(`/item/update/${selectedItemId}`, payload, config);
       } else {
         response = await axiosInstance.post('/item/store', payload, config);
       }
-
-      console.log('sendPayload:', sendPayload);
-      console.log('response:', response.data);
-      
-
       if ([200, 201].includes(response.status)) {
-        fetchAllData();
+        fetchItems();
         setSuccess(true);
         setFormData(initialFormData);
         setImageFile(null);
@@ -205,7 +254,7 @@ const fetchWarehouses = async () => {
     }
   };
 
-   const handleEditClick = (item) => {
+  const handleEditClick = (item) => {
     setSelectedItemId(item.id);
     setFormData({
       name: item.name || '',
@@ -216,14 +265,14 @@ const fetchWarehouses = async () => {
       barcode: item.barcode || '',
       isService: item.isService || 0,
       image: item.image_url || '',
-    allow_zero_sell: item.allow_zero_sell !== undefined ? Number(item.allow_zero_sell) : 1, // <-- FIXED
+      allow_zero_sell: item.allow_zero_sell !== undefined ? Number(item.allow_zero_sell) : 1,
       search: '',
     });
     setImageFile(null);
     setFormErrors({});
   };
 
-  // price model
+  // --- Handlers: Table, Modals, Delete ---
   const handlePriceClick = (itemId) => {
     setPriceModalItem(items.find(i => i.id === itemId));
     setPriceModalOpen(true);
@@ -233,28 +282,26 @@ const fetchWarehouses = async () => {
     setPriceModalItem(null);
   };
 
+  const handleItemWarehouseClick = (itemId) => {
+    setQuantityModalItem(items.find(i => i.id === itemId));
+    setQuantityModalOpen(true);
+  };
+  const handleQuantityModalClose = () => {
+    setQuantityModalOpen(false);
+    setQuantityModalItem(null);
+  };
+
   const handleDeleteClick = (id) => {
     setSelectedItemId(id);
     setOpenDialog(true);
   };
 
-  // handle warehouse click
-  const handleItemWarehouseClick = (itemId) => {
-  setQuantityModalItem(items.find(i => i.id === itemId));
-  setQuantityModalOpen(true);
-};
-const handleQuantityModalClose = () => {
-  setQuantityModalOpen(false);
-  setQuantityModalItem(null);
-};
-
-  // handleDeleteConfirm function
   const handleDeleteConfirm = async () => {
     try {
       await axiosInstance.delete(`/item/delete/${selectedItemId}`);
       setItems(prev => prev.filter(i => i.id !== selectedItemId));
       setSuccess(true);
-    } catch (err) {
+    } catch {
       setErrorMessage('هەڵە ڕوویدا لە سڕینەوە');
     } finally {
       setOpenDialog(false);
@@ -262,71 +309,127 @@ const handleQuantityModalClose = () => {
     }
   };
 
-  const handleSearchChange = async (e) => {
-    const value = e.target.value;
-    setFormData(prev => ({ ...prev, search: value }));
+  // --- Handlers: Filtering, Sorting, Pagination ---
+  const handleSearchChange = (e) => {
+    setFormData(prev => ({ ...prev, search: e.target.value }));
+    setCurrentPage(1);
+  };
 
-    if (!value.trim()) {
-      fetchAllData();
-      return;
-    }
-
-    setFetching(true);
-    try {
-      setItems(prev =>
-        prev.filter(
-          i =>
-            i.name.includes(value) ||
-            (i.description && i.description.includes(value)) ||
-            (i.barcode && i.barcode.includes(value))
-        )
-      );
-    } catch {
-      setErrorMessage('هەڵە ڕوویدا لە گەڕان');
-    } finally {
-      setFetching(false);
-    }
+  const handleSort = (field) => {
+    const isAsc = sortBy === field && sortOrder === 'asc';
+    setSortBy(field);
+    setSortOrder(isAsc ? 'desc' : 'asc');
+    setCurrentPage(1);
   };
 
   const handlePageChange = (_, value) => setCurrentPage(value);
+
+  // --- Snackbar & Dialog ---
   const handleSnackbarClose = () => setSuccess(false);
   const handleErrorSnackbarClose = () => setErrorMessage('');
   const handleDialogClose = () => setOpenDialog(false);
 
- const handleChangeWithErrorReset = (e) => {
-  const { name, value } = e.target;
-  setErrorMessage('');
-  setFormErrors(prev => ({ ...prev, [name]: '' }));
-
-  // Convert to number for specific fields
-  if (name === 'allow_zero_sell' || name === 'isService') {
-    setFormData(prev => ({ ...prev, [name]: Number(value) }));
-  } else {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  }
-};
-
-  const clearSelectField = (field) => {
-    setFormData(prev => ({ ...prev, [field]: '' }));
-    setFormErrors(prev => ({ ...prev, [field]: '' }));
-  };
-
-  const currentItems = items.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
+  // --- Filtering Controls ---
+  const filterControls = (
+    <Grid container spacing={2} sx={{ mb: 2 }}>
+      <Grid item xs={12} sm={6} md={4}>
+        <TextField
+          select
+          fullWidth
+          label="گرووپ"
+          value={filterCategoryId}
+          onChange={e => { setFilterCategoryId(e.target.value); setCurrentPage(1); }}
+        >
+          <MenuItem value="">هەموو گرووپەکان</MenuItem>
+          {categories.map(cat => (
+            <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
+          ))}
+        </TextField>
+      </Grid>
+      <Grid item xs={12} sm={6} md={4}>
+        <TextField
+          select
+          fullWidth
+          label="براند"
+          value={filterBrandId}
+          onChange={e => { setFilterBrandId(e.target.value); setCurrentPage(1); }}
+        >
+          <MenuItem value="">هەموو براندەکان</MenuItem>
+          {brands.map(brand => (
+            <MenuItem key={brand.id} value={brand.id}>{brand.name}</MenuItem>
+          ))}
+        </TextField>
+      </Grid>
+      <Grid item xs={12} sm={6} md={4}>
+        <TextField
+          select
+          fullWidth
+          label="جۆر"
+          value={filterIsService}
+          onChange={e => { setFilterIsService(e.target.value); setCurrentPage(1); }}
+        >
+          <MenuItem value="">هەموو</MenuItem>
+          <MenuItem value={0}>کاڵا</MenuItem>
+          <MenuItem value={1}>خزمەتگوزاری</MenuItem>
+        </TextField>
+      </Grid>
+      <Grid item xs={12} sm={6} md={4}>
+        <TextField
+          fullWidth
+          label="بارکۆد"
+          value={filterBarcode}
+          onChange={e => { setFilterBarcode(e.target.value); setCurrentPage(1); }}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6} md={4}>
+        <TextField
+          fullWidth
+          label="ناو"
+          name="search"
+          value={formData.search}
+          onChange={handleSearchChange}
+        />
+      </Grid>
+      <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex', alignItems: 'center' }}>
+        <Button
+          variant="contained"
+          color="secondary"
+          fullWidth
+          onClick={async () => {
+            const params = {
+              category_id: filterCategoryId,
+              brand_id: filterBrandId,
+              isService: filterIsService,
+              barcode: filterBarcode,
+              name: formData.search,
+              sortBy,
+              sortOrder,
+              page: 1,
+              pageSize: 10000
+            };
+            const res = await axiosInstance.get('/item/filter', { params });
+            setReportItems(res.data.results || []);
+            setOpenPdfPreview(true);
+          }}
+        >
+          ڕاپۆرت
+        </Button>
+      </Grid>
+    </Grid>
   );
 
+  // --- Render ---
   return (
     <Box sx={{ marginRight: isDrawerOpen ? '250px' : '0', transition: 'margin-right 0.3s' }}>
       <Grid container spacing={2}>
+        {/* Form Section */}
         <Grid item xs={12} md={4}>
           <Card sx={{ m: 1, p: 2 }}>
             <Typography variant="h6" gutterBottom>
               {selectedItemId ? 'گۆڕینی کاڵا' : 'زیادکردنی کاڵا'}
             </Typography>
             <form onSubmit={handleSubmit}>
-
-                 <TextField
+              <TextField
                 select
                 fullWidth
                 label="گرووپ"
@@ -353,9 +456,8 @@ const handleQuantityModalClose = () => {
                 {brands.map((brand) => (
                   <MenuItem key={brand.id} value={brand.id}>{brand.name}</MenuItem>
                 ))}
-              </TextField>   
-
-                  <TextField
+              </TextField>
+              <TextField
                 fullWidth
                 label="بارکۆد"
                 name="barcode"
@@ -372,8 +474,6 @@ const handleQuantityModalClose = () => {
                   ),
                 }}
               />
-
-
               <TextField
                 fullWidth
                 label="ناوی کاڵا"
@@ -393,8 +493,6 @@ const handleQuantityModalClose = () => {
                   ),
                 }}
               />
-             
-          
               <TextField
                 fullWidth
                 label="نرخ(بچوکترین یەکە)"
@@ -415,41 +513,37 @@ const handleQuantityModalClose = () => {
                   ),
                 }}
               />
-          
-
               <Grid container spacing={2}>
-                        <Grid item xs={6}>
-                            <TextField
-                            select
-                            fullWidth
-                            label="جۆری کاڵا"
-                            name="isService"
-                            value={formData.isService}
-                            onChange={handleChangeWithErrorReset}
-                            sx={{ mb: 2 }}
-                            >
-                            <MenuItem value={0}>کاڵا</MenuItem>
-                            <MenuItem value={1}>خزمەتگوزاری</MenuItem>
-                            </TextField>
-                        </Grid>
-
-                    <Grid item xs={6}>
-                        <TextField
-                        select
-                        fullWidth
-                        label="ڕێگە بە فرۆشتنی سفرە"
-                        name="allow_zero_sell"
-                        value={formData.allow_zero_sell}
-                        onChange={handleChangeWithErrorReset}
-                        sx={{ mb: 2 }}
-                        >
-                        <MenuItem value={1}>بەڵێ</MenuItem>
-                        <MenuItem value={0}>نەخێر</MenuItem>
-                        </TextField>
-                    </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="جۆری کاڵا"
+                    name="isService"
+                    value={formData.isService}
+                    onChange={handleChangeWithErrorReset}
+                    sx={{ mb: 2 }}
+                  >
+                    <MenuItem value={0}>کاڵا</MenuItem>
+                    <MenuItem value={1}>خزمەتگوزاری</MenuItem>
+                  </TextField>
                 </Grid>
-
-                 <TextField
+                <Grid item xs={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="ڕێگە بە فرۆشتنی سفرە"
+                    name="allow_zero_sell"
+                    value={formData.allow_zero_sell}
+                    onChange={handleChangeWithErrorReset}
+                    sx={{ mb: 2 }}
+                  >
+                    <MenuItem value={1}>بەڵێ</MenuItem>
+                    <MenuItem value={0}>نەخێر</MenuItem>
+                  </TextField>
+                </Grid>
+              </Grid>
+              <TextField
                 fullWidth
                 label="وەسف"
                 name="description"
@@ -466,10 +560,7 @@ const handleQuantityModalClose = () => {
                   ),
                 }}
               />
-
-             
-
-             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
                 <Button variant="contained" component="label">
                   هەڵبژاردنی وێنە
                   <input type="file" hidden accept="image/*" onChange={handleImageUpload} />
@@ -479,7 +570,7 @@ const handleQuantityModalClose = () => {
                     formData.image
                       ? formData.image.startsWith('http') || formData.image.startsWith('data:')
                         ? formData.image
-                      : `${BASE_URL}${formData.image}`
+                        : `${BASE_URL}${formData.image}`
                       : ''
                   }
                   alt="Item"
@@ -491,73 +582,91 @@ const handleQuantityModalClose = () => {
                   </IconButton>
                 )}
               </Box>
-             
-              <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
-                {loading ? 'Loading...' : selectedItemId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-              </Button>
+              <Grid container spacing={2} sx={{ mt: 1 }}>
+                <Grid item xs={9}>
+                  <Button
+                    type="submit"
+                    fullWidth
+                    variant="contained"
+                    color="success"
+                    disabled={loading}
+                  >
+                    {loading ? 'چاوەڕوان بە...' : selectedItemId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                  </Button>
+                </Grid>
+                <Grid item xs={3}>
+                  <Button
+                    type="button"
+                    fullWidth
+                    variant="contained"
+                    color="info"
+                    onClick={() => {
+                      setFormData(initialFormData);
+                      setFormErrors({});
+                      setSelectedItemId(null);
+                      setErrorMessage('');
+                      setImageFile(null);
+                      setFilterCategoryId('');
+                      setFilterBrandId('');
+                      setFilterIsService('');
+                      setFilterBarcode('');
+                      setCurrentPage(1);
+                      fetchItems(1, rowsPerPage, sortBy, sortOrder);
+                    }}
+                  >
+                    پاکردنەوە
+                  </Button>
+                </Grid>
+              </Grid>
             </form>
           </Card>
         </Grid>
-
+        {/* Table Section */}
         <Grid item xs={12} md={8}>
           <Card sx={{ m: 1, p: 2 }}>
-            <TextField
-              fullWidth
-              label="گەڕان"
-              name="search"
-              value={formData.search}
-              onChange={handleSearchChange}
-              placeholder="ناو، وەسف یان بارکۆد..."
-              sx={{ mb: 2 }}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    {formData.search && (
-                      <IconButton onClick={() => {
-                        setFormData(prev => ({ ...prev, search: '' }));
-                        fetchAllData();
-                      }}>
-                        <ClearIcon />
-                      </IconButton>
-                    )}
-                    <IconButton onClick={fetchAllData}>
-                      <SearchIcon />
-                    </IconButton>
-                  </InputAdornment>
-                ),
-              }}
-            />
+            {filterControls}
             <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>#</TableCell>
+                    <TableCell>
+                      <TableSortLabel active={sortBy === 'id'} direction={sortBy === 'id' ? sortOrder : 'asc'} onClick={() => handleSort('id')}>#</TableSortLabel>
+                    </TableCell>
                     <TableCell>وێنە</TableCell>
-                    <TableCell>ناوی کاڵا</TableCell>
-                     <TableCell>گرووپ</TableCell>
-                    <TableCell>براند</TableCell>
-                     <TableCell>بارکۆد</TableCell>
-                      <TableCell>نرخ</TableCell>
+                    <TableCell>
+                      <TableSortLabel active={sortBy === 'name'} direction={sortBy === 'name' ? sortOrder : 'asc'} onClick={() => handleSort('name')}>ناوی کاڵا</TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel active={sortBy === 'category_id'} direction={sortBy === 'category_id' ? sortOrder : 'asc'} onClick={() => handleSort('category_id')}>گرووپ</TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel active={sortBy === 'brand_id'} direction={sortBy === 'brand_id' ? sortOrder : 'asc'} onClick={() => handleSort('brand_id')}>براند</TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel active={sortBy === 'barcode'} direction={sortBy === 'barcode' ? sortOrder : 'asc'} onClick={() => handleSort('barcode')}>بارکۆد</TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel active={sortBy === 'cost'} direction={sortBy === 'cost' ? sortOrder : 'asc'} onClick={() => handleSort('cost')}>نرخ</TableSortLabel>
+                    </TableCell>
                     <TableCell>جۆر</TableCell>
-                    <TableCell>سفر ڕێگەبدات </TableCell>
-                     <TableCell>نرخی فرۆشتن</TableCell>
-                     <TableCell>کۆگا</TableCell>
-                    <TableCell>Action</TableCell>
+                    <TableCell>سفر ڕێگەبدات</TableCell>
+                    <TableCell>نرخی فرۆشتن</TableCell>
+                    <TableCell>کۆگا</TableCell>
+                    <TableCell>ئیش</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {fetching ? (
                     <TableRow>
-                      <TableCell colSpan={11} align="center">
+                      <TableCell colSpan={12} align="center">
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  ) : currentItems.length > 0 ? (
-                    currentItems.map((item) => (
+                  ) : items.length > 0 ? (
+                    items.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((item) => (
                       <TableRow key={item.id}>
-                        
                         <TableCell>{item.id}</TableCell>
-                         <TableCell>
+                        <TableCell>
                           {item.image_url ? (
                             <Avatar
                               src={
@@ -572,7 +681,6 @@ const handleQuantityModalClose = () => {
                           )}
                         </TableCell>
                         <TableCell>{item.name}</TableCell>
-                        
                         <TableCell>
                           {categories.find((c) => c.id === item.category_id)?.name || item.category_id}
                         </TableCell>
@@ -581,31 +689,21 @@ const handleQuantityModalClose = () => {
                         </TableCell>
                         <TableCell>{item.barcode}</TableCell>
                         <TableCell>{item.cost}</TableCell>
-                       
                         <TableCell>{item.isService ? "خزمەتگوزاری" : "کاڵا"}</TableCell>
-                        <TableCell
-                            sx={{ color: Number(item.allow_zero_sell) ? 'red' : 'green' }}
-                            >
-                            {Number(item.allow_zero_sell) ? "بەڵێ" : "نەخێر"}
-                            </TableCell>
-
-                             <TableCell>
-
+                        <TableCell sx={{ color: Number(item.allow_zero_sell) ? 'red' : 'green' }}>
+                          {Number(item.allow_zero_sell) ? "بەڵێ" : "نەخێر"}
+                        </TableCell>
+                        <TableCell>
                           <IconButton color="primary" onClick={() => handlePriceClick(item.id)}>
                             <PriceIcon />
                           </IconButton>
-
-                        </TableCell> 
-                        
-                        <TableCell>
-
-                    <IconButton color="primary" onClick={() => handleItemWarehouseClick(item.id)}>
-                                              <WarehouseIcon />
-                                              </IconButton>
                         </TableCell>
-
                         <TableCell>
-
+                          <IconButton color="primary" onClick={() => handleItemWarehouseClick(item.id)}>
+                            <WarehouseIcon />
+                          </IconButton>
+                        </TableCell>
+                        <TableCell>
                           <IconButton color="primary" onClick={() => handleEditClick(item)}>
                             <EditIcon />
                           </IconButton>
@@ -617,7 +715,7 @@ const handleQuantityModalClose = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={11} align="center">
+                      <TableCell colSpan={12} align="center">
                         {formData.search
                           ? 'هیچ کاڵایەک بە گەڕانەکەت نەدۆزرایەوە'
                           : 'هیچ کاڵایەک نەدۆزرایەوە'}
@@ -625,12 +723,22 @@ const handleQuantityModalClose = () => {
                     </TableRow>
                   )}
                 </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={6} align="right" sx={{ fontWeight: 'bold' }}>
+                      ژمارەی گشتی :
+                    </TableCell>
+                    <TableCell colSpan={6} align="left" sx={{ fontWeight: 'bold' }}>
+                      {totalCount}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
               </Table>
             </TableContainer>
-            {items.length > rowsPerPage && (
+            {totalCount > rowsPerPage && (
               <Box mt={2} display="flex" justifyContent="center">
                 <Pagination
-                  count={Math.ceil(items.length / rowsPerPage)}
+                  count={Math.ceil(totalCount / rowsPerPage)}
                   page={currentPage}
                   onChange={handlePageChange}
                   color="primary"
@@ -640,22 +748,39 @@ const handleQuantityModalClose = () => {
           </Card>
         </Grid>
       </Grid>
-
+      {/* Modals and Dialogs */}
+      <DialogPdf
+        open={openPdfPreview}
+        onClose={() => setOpenPdfPreview(false)}
+        document={
+          <ItemInfoPDF
+            items={reportItems}
+            categories={categories}
+            brands={brands}
+            company={company}
+            filters={{
+              category_id: filterCategoryId,
+              brand_id: filterBrandId,
+              barcode: filterBarcode,
+              name: formData.search,
+            }}
+          />
+        }
+        fileName="item_report.pdf"
+      />
       <ItemPriceModal
-      open={priceModalOpen}
-      onClose={handlePriceModalClose}
-      item={priceModalItem}
-      priceTypes={priceTypes}
-      units={units}
-    />
-    <ItemQuantityModal
-      open={quantityModalOpen}
-      onClose={handleQuantityModalClose}
-      item={quantityModalItem}
-      warehouses={warehouses}
-    />
-
-      {/* Delete Dialog */}
+        open={priceModalOpen}
+        onClose={handlePriceModalClose}
+        item={priceModalItem}
+        priceTypes={priceTypes}
+        units={units}
+      />
+      <ItemQuantityModal
+        open={quantityModalOpen}
+        onClose={handleQuantityModalClose}
+        item={quantityModalItem}
+        warehouses={warehouses}
+      />
       <ConfirmDialog
         open={openDialog}
         onClose={handleDialogClose}
@@ -665,8 +790,6 @@ const handleQuantityModalClose = () => {
         confirmText="سڕینەوە"
         cancelText="پاشگەزبوونەوە"
       />
-
-      {/* Snackbars */}
       <Snackbar open={success} autoHideDuration={3000} onClose={handleSnackbarClose} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
         <Alert onClose={handleSnackbarClose} severity="success">جێبەجێکرا</Alert>
       </Snackbar>

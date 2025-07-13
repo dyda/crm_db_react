@@ -1,8 +1,9 @@
 import React from 'react';
-import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import Rudaw from '../../../assets/fonts/rudawregular2.ttf';
+import PdfReportHeader from '../common/PdfReportHeader';
 
-// Register Kurdish font (optional, remove if not available)
+// Register Kurdish font
 Font.register({
   family: 'Rudaw',
   fonts: [{ src: Rudaw, fontWeight: 'normal' }],
@@ -96,7 +97,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     paddingTop: 4,
   },
-   footer: {
+  footer: {
     position: 'absolute',
     left: 24,
     right: 24,
@@ -189,36 +190,14 @@ const SalaryPDF = ({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Header */}
-        <View style={{ flexDirection: 'row-reverse', alignItems: 'center', marginBottom: 12 }}>
-          <View style={{ flex: 1, alignItems: 'flex-end' }}>
-            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>{company?.name || ''}</Text>
-            <Text style={{ fontSize: 10 }}>{company?.tagline || ''}</Text>
-            <Text style={{ fontSize: 10 }}>{company?.phone_1 || ''}</Text>
-            <Text style={{ fontSize: 10 }}>{company?.phone_2 || ''}</Text>
-          </View>
-          {company?.logo_1 && (
-            <Image
-              src={company.logo_1}
-              style={{ width: 100, height: 100, marginLeft: 15, borderRadius: 1 }}
-            />
-          )}
-        </View>
-
-               <Text style={styles.title}>ڕاپۆرتی مووچەکان</Text>
-
-         <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            {filterTexts.length > 0 && (
-              <Text style={[styles.filters, { marginBottom: 0 }]}>
-                گەڕان بەپێی : {filterTexts.join(' | ')}
-              </Text>
-            )}
-            <Text style={[styles.exportDate, { marginBottom: 0 }]}>
-              بەرواری چاپ: {exportDate}
-            </Text>
-          </View>
-
-         
+        {/* PDF Header */}
+        <PdfReportHeader
+          company={company}
+          title="ڕاپۆرتی مووچەکان"
+          filters={filterTexts}
+          exportDate={exportDate}
+          styles={styles}
+        />
 
         {/* Table */}
         <View style={styles.table}>
@@ -275,26 +254,26 @@ const SalaryPDF = ({
           </View>
         </View>
 
-       {/* Footer */}
-              {(company?.address || company?.supplier_name) && (
-                <View style={styles.footer}>
-                  {company?.address && (
-                    <Text style={styles.footerRight}>ناونیشان: {company.address}</Text>
-                  )}
-                  {company?.supplier_name && (
-                    <Text style={styles.footerLeft}>{company.supplier_name}</Text>
-                  )}
-                </View>
-              )}
-      
-              {/* Page Number */}
-              <Text
-                style={styles.pageNumber}
-                render={({ pageNumber, totalPages }) =>
-                  `${pageNumber} / ${totalPages}`
-                }
-                fixed
-              />
+        {/* Footer */}
+        {(company?.address || company?.supplier_name) && (
+          <View style={styles.footer}>
+            {company?.address && (
+              <Text style={styles.footerRight}>ناونیشان: {company.address}</Text>
+            )}
+            {company?.supplier_name && (
+              <Text style={styles.footerLeft}>{company.supplier_name}</Text>
+            )}
+          </View>
+        )}
+
+        {/* Page Number */}
+        <Text
+          style={styles.pageNumber}
+          render={({ pageNumber, totalPages }) =>
+            `${pageNumber} / ${totalPages}`
+          }
+          fixed
+        />
       </Page>
     </Document>
   );

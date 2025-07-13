@@ -134,60 +134,43 @@ const styles = StyleSheet.create({
   // Column widths
   col1: { flex: 0.5 },
   col2: { flex: 1.5 },
-  col3: { flex: 2 },
+  col3: { flex: 1.5 },
   col4: { flex: 1.5 },
   col5: { flex: 2 },
   col6: { flex: 1.5 },
-  col7: { flex: 2 },
-  col8: { flex: 1.5 },
+  col7: { flex: 1.5 },
+  col8: { flex: 2 },
 });
 
-// 3. Utility function
-function getSumByCurrency(expenses, currencies) {
-  const sums = {};
-  expenses.forEach(exp => {
-    const currency = currencies.find(cur => cur.id === exp.currency_id);
-    const symbol = currency?.symbol || '';
-    const key = symbol || exp.currency_id || '';
-    const amount = Number(exp.amount || 0);
-    if (!sums[key]) sums[key] = 0;
-    sums[key] += amount;
-  });
-  return sums;
-}
+// 3. Utility
 function formatNumberWithCommas(value) {
   if (value === null || value === undefined) return '';
   return Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // 4. Main component
-const ExpensesPDF = ({
-  expenses,
-  categories,
-  branches,
-  employees,
-  currencies,
-  company,
+const ItemInfoPDF = ({
+  items = [],
+  categories = [],
+  brands = [],
+  company = {},
   filters = {},
 }) => {
-  const sumByCurrency = getSumByCurrency(expenses, currencies);
-
   // Prepare filter display
   const filterTexts = [];
-  if (filters.branch) {
-    const branch = branches.find(b => b.id === filters.branch);
-    filterTexts.push(`لق: ${branch ? branch.name : filters.branch}`);
+  if (filters.category_id) {
+    const cat = categories.find(c => c.id === filters.category_id);
+    filterTexts.push(`گرووپ: ${cat ? cat.name : filters.category_id}`);
   }
-  if (filters.employee) {
-    const emp = employees.find(e => e.id === filters.employee);
-    filterTexts.push(`کارمەند: ${emp ? emp.name : filters.employee}`);
+  if (filters.brand_id) {
+    const brand = brands.find(b => b.id === filters.brand_id);
+    filterTexts.push(`براند: ${brand ? brand.name : filters.brand_id}`);
   }
-  if (filters.category) {
-    const cat = categories.find(c => c.id === filters.category);
-    filterTexts.push(`گرووپ: ${cat ? cat.name : filters.category}`);
+  if (filters.barcode) {
+    filterTexts.push(`بارکۆد: ${filters.barcode}`);
   }
-  if (filters.dateRange) {
-    filterTexts.push(`بەروار: ${filters.dateRange.start || ''} - ${filters.dateRange.end || ''}`);
+  if (filters.name) {
+    filterTexts.push(`ناو: ${filters.name}`);
   }
 
   // Export/print date
@@ -196,10 +179,10 @@ const ExpensesPDF = ({
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* PDF Header */}
+        {/* Reusable PDF Header */}
         <PdfReportHeader
           company={company}
-          title="ڕاپۆرتی مەسرووفات"
+          title="ڕاپۆرتی کاڵاکان"
           filters={filterTexts}
           exportDate={exportDate}
           styles={styles}
@@ -211,54 +194,35 @@ const ExpensesPDF = ({
           <View style={[styles.row, styles.header]}>
             <Text style={[styles.cell, styles.col1]}>#</Text>
             <Text style={[styles.cell, styles.col2]}>گرووپ</Text>
-            <Text style={[styles.cell, styles.col3]}>ناو</Text>
-            <Text style={[styles.cell, styles.col4]}>بڕ</Text>
-            <Text style={[styles.cell, styles.col5]}>کارمەند</Text>
-            <Text style={[styles.cell, styles.col6]}>لق</Text>
-            <Text style={[styles.cell, styles.col7]}>تێبینی</Text>
-            <Text style={[styles.cell, styles.col8]}>بەروار</Text>
+            <Text style={[styles.cell, styles.col3]}>براند</Text>
+            <Text style={[styles.cell, styles.col4]}>بارکۆد</Text>
+            <Text style={[styles.cell, styles.col5]}>ناو</Text>
+            <Text style={[styles.cell, styles.col6]}>نرخ</Text>
+            <Text style={[styles.cell, styles.col7]}>جۆر</Text>
+            <Text style={[styles.cell, styles.col8]}>وەسف</Text>
           </View>
 
           {/* Data rows */}
-          {expenses.map(exp => (
-            <View style={styles.row} key={exp.id}>
-              <Text style={[styles.cell, styles.col1]}>{exp.id}</Text>
-              <Text style={[styles.cell, styles.col2]}>{categories.find(c => c.id === exp.category_id)?.name || ''}</Text>
-              <Text style={[styles.cell, styles.col3]}>{exp.name}</Text>
-              <Text style={[styles.cell, styles.col4]}>
-                {(currencies.find(cur => cur.id === exp.currency_id)?.symbol || '') + formatNumberWithCommas(exp.amount)}
-              </Text>
-              <Text style={[styles.cell, styles.col5]}>{employees.find(e => e.id === exp.employee_id)?.name || ''}</Text>
-              <Text style={[styles.cell, styles.col6]}>{branches.find(b => b.id === exp.branch_id)?.name || ''}</Text>
-              <Text style={[styles.cell, styles.col7]}>{exp.note}</Text>
-              <Text style={[styles.cell, styles.col8]}>
-                {new Date(exp.expense_date).toLocaleDateString('ckb-IQ')}
-              </Text>
+          {items.map((item, idx) => (
+            <View style={styles.row} key={item.id}>
+              <Text style={[styles.cell, styles.col1]}>{idx + 1}</Text>
+              <Text style={[styles.cell, styles.col2]}>{categories.find(c => c.id === item.category_id)?.name || ''}</Text>
+              <Text style={[styles.cell, styles.col3]}>{brands.find(b => b.id === item.brand_id)?.name || ''}</Text>
+              <Text style={[styles.cell, styles.col4]}>{item.barcode}</Text>
+              <Text style={[styles.cell, styles.col5]}>{item.name}</Text>
+              <Text style={[styles.cell, styles.col6]}>{formatNumberWithCommas(item.cost)}</Text>
+              <Text style={[styles.cell, styles.col7]}>{item.isService ? "خزمەتگوزاری" : "کاڵا"}</Text>
+              <Text style={[styles.cell, styles.col8]}>{item.description}</Text>
             </View>
           ))}
 
           {/* Sum row */}
           <View style={styles.sumRow}>
-            <Text style={styles.sumTitle}>کۆی گشتی</Text>
-            <Text style={styles.sumText}>
-              {Object.entries(sumByCurrency).map(([symbol, total], idx, arr) => (
-                <Text key={symbol} style={{ marginHorizontal: 1 }}>
-                  {symbol}{formatNumberWithCommas(total)}{idx < arr.length - 1 ? ' | ' : ''}
-                </Text>
-              ))}
-            </Text>
+            <Text style={styles.sumTitle}>ژمارەی گشتی</Text>
+            <Text style={styles.sumText}>{items.length}</Text>
           </View>
         </View>
 
-        {/* Signature/Approval Section */}
-        <View style={styles.signatureSection}>
-          <View style={styles.signatureBox}>
-            <Text>واژۆی یەکەم</Text>
-          </View>
-          <View style={styles.signatureBox}>
-            <Text>واژۆی دووەم</Text>
-          </View>
-        </View>
 
         {/* Footer */}
         {(company?.address || company?.supplier_name) && (
@@ -285,4 +249,5 @@ const ExpensesPDF = ({
   );
 };
 
-export default ExpensesPDF;
+
+export default ItemInfoPDF;

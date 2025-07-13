@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Grid, Card, Typography, TextField, Button, IconButton, InputAdornment,
   Snackbar, Alert, CircularProgress, Table, TableHead, TableRow,
-  TableCell, TableBody, TableContainer, Paper, Pagination
+  TableCell, TableBody,TableFooter, TableContainer, Paper, Pagination
 } from '@mui/material';
 import {
   Clear as ClearIcon,
@@ -172,12 +172,12 @@ function ItemCategoryManagment({ isDrawerOpen }) {
         <Grid item xs={12} md={4}>
           <Card sx={{ m: 1, p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              {selectedCategoryId ? 'گۆڕینی پۆل' : 'زیادکردنی پۆل'}
+              {selectedCategoryId ? 'گۆڕینی گرووپ' : 'زیادکردنی گرووپ'}
             </Typography>
             <form onSubmit={handleSubmit}>
               <TextField
                 fullWidth
-                label="ناوی پۆل"
+                label="ناوی گرووپ"
                 name="name"
                 value={formData.name}
                 onChange={handleChangeWithErrorReset}
@@ -251,7 +251,7 @@ function ItemCategoryManagment({ isDrawerOpen }) {
                 <TableHead>
                   <TableRow>
                     <TableCell>#</TableCell>
-                    <TableCell>ناوی پۆل</TableCell>
+                    <TableCell>ناوی گرووپ</TableCell>
                     <TableCell>وەسف</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
@@ -283,12 +283,22 @@ function ItemCategoryManagment({ isDrawerOpen }) {
                     <TableRow>
                       <TableCell colSpan={4} align="center">
                         {formData.search
-                          ? 'هیچ پۆلێک بە گەڕانەکەت نەدۆزرایەوە'
+                          ? 'هیچ گرووپێک بە گەڕانەکەت نەدۆزرایەوە'
                           : 'هیچ پۆلێک نەدۆزرایەوە'}
                       </TableCell>
                     </TableRow>
                   )}
                 </TableBody>
+                <TableFooter>
+            <TableRow>
+              <TableCell colSpan={2} align="right" sx={{ fontWeight: 'bold' }}>
+                ژمارەی گشتی :
+              </TableCell>
+              <TableCell colSpan={2} align="left" sx={{ fontWeight: 'bold' }}>
+                {categories.length}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
               </Table>
             </TableContainer>
             {categories.length > rowsPerPage && (
@@ -310,8 +320,8 @@ function ItemCategoryManagment({ isDrawerOpen }) {
         open={openDialog}
         onClose={handleDialogClose}
         onConfirm={handleDeleteConfirm}
-        title="سڕینەوەی پۆل"
-        description="ئایە دڵنیایت لە سڕینەوەی ئەم پۆلە؟ ئەم کردارە گەرێنەوە نییە."
+        title="سڕینەوەی گرووپ"
+        description="ئایە دڵنیایت لە سڕینەوەی ئەم گرووپە؟ ئەم کردارە گەرێنەوە نییە."
         confirmText="سڕینەوە"
         cancelText="پاشگەزبوونەوە"
       />
