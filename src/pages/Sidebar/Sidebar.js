@@ -76,11 +76,14 @@ const Sidebar = () => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
+                  overflowX: 'hidden', // <-- Prevent horizontal scroll
+
           },
         }}
       >
-        <Box sx={{ flexGrow: 1 }}>
-          <List sx={{ width: 250 }}>
+          <Box sx={{ flexGrow: 1, overflowX: 'hidden' }}> {/* <-- Prevent horizontal scroll */}
+
+    <List sx={{ width: 250, overflowX: 'hidden' }}> {/* <-- Prevent horizontal scroll */}
             <ListItem button component={Link} to="/dashboard">
               <ListItemIcon sx={{ color: 'white' }}>
                 <Home />
@@ -151,7 +154,6 @@ const Sidebar = () => {
               <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>
 
-            <Divider sx={{ backgroundColor: 'white' }} />
 
             {/* Employee Section */}
             <ListItem button onClick={handleEmployeeNestedToggle} aria-expanded={nestedEmployeeOpen}>

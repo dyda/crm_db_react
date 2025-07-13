@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import axiosInstance from '../../components/service/axiosInstance';
 import {
   Card,
@@ -84,30 +84,64 @@ function ExpensesManagment({ isDrawerOpen }) {
   const [sortBy, setSortBy] = useState('expense_date');
   const [sortOrder, setSortOrder] = useState('desc');
   const [reportExpenses, setReportExpenses] = useState([]);
-
-  // Calculate sum by currency for current page
+  const [totalSumByCurrency, setTotalSumByCurrency] = useState({});
   const currentExpenses = expenses;
 
-  const sumByCurrency = useMemo(() => {
-    const sums = {};
-    currentExpenses.forEach((expense) => {
-      const currency = currencies.find((cur) => cur.id === expense.currency_id);
-      const symbol = currency?.symbol || '';
-      const key = symbol || expense.currency_id || '';
-      const amount = Number(expense.amount || 0);
-      if (!sums[key]) sums[key] = 0;
-      sums[key] += amount;
-    });
-    return sums;
-  }, [currentExpenses, currencies]);
 
+  // Fetch all data and initial expenses
   useEffect(() => {
     setFormData((prev) => ({ ...initialFormData, user_id: getCurrentUserId() }));
     fetchAllData();
     fetchExpenses();
     fetchCompanyInfo();
+    fetchTotalSumByCurrency();
     // eslint-disable-next-line
   }, []);
+
+  // Fetch sum of all filtered expenses by currency (not just current page)
+  const fetchTotalSumByCurrency = async () => {
+    try {
+      let params = {
+        sortBy,
+        sortOrder,
+      };
+      if (search.trim()) {
+        params.name = search;
+        params.note = search;
+        if (!isNaN(search)) {
+          params.id = search;
+        }
+      }
+      if (filterDateRange.start) params.startDate = filterDateRange.start;
+      if (filterDateRange.end) params.endDate = filterDateRange.end;
+      if (filterBranchId) params.branch_id = filterBranchId;
+      if (filterEmployeeId) params.employee_id = filterEmployeeId;
+      if (filterCategoryId) params.category_id = filterCategoryId;
+
+      // Fetch all filtered expenses (no pagination)
+      const response = await axiosInstance.get('/expenses/filter', { params });
+      const allExpenses = response.data.expenses || [];
+      // Calculate sum by currency
+      const sums = {};
+      allExpenses.forEach((exp) => {
+        const currency = currencies.find((cur) => cur.id === exp.currency_id);
+        const symbol = currency?.symbol || '';
+        const key = symbol || exp.currency_id || '';
+        const amount = Number(exp.amount || 0);
+        if (!sums[key]) sums[key] = 0;
+        sums[key] += amount;
+      });
+      setTotalSumByCurrency(sums);
+    } catch (error) {
+      setTotalSumByCurrency({});
+    }
+  };
+
+  // Update sum when filters, sort, or page changes
+  useEffect(() => {
+    fetchTotalSumByCurrency();
+    // eslint-disable-next-line
+  }, [search, filterDateRange, filterBranchId, filterEmployeeId, filterCategoryId, sortBy, sortOrder]);
 
   const fetchCompanyInfo = async () => {
     try {
@@ -149,7 +183,6 @@ function ExpensesManagment({ isDrawerOpen }) {
   const fetchAllExpensesForReport = async () => {
     try {
       let params = {
-        // Do NOT include page or pageSize
         sortBy,
         sortOrder,
       };
@@ -227,6 +260,7 @@ function ExpensesManagment({ isDrawerOpen }) {
     setFilterDateRange(range);
     setCurrentPage(1);
     fetchExpenses(search, range, filterBranchId, filterEmployeeId, filterCategoryId, 1);
+    fetchTotalSumByCurrency();
   };
 
   const handleOpenPdfPreview = async () => {
@@ -240,6 +274,7 @@ function ExpensesManagment({ isDrawerOpen }) {
     setSearch(value);
     setCurrentPage(1);
     fetchExpenses(value, filterDateRange, filterBranchId, filterEmployeeId, filterCategoryId, 1);
+    fetchTotalSumByCurrency();
   };
 
   const handleSubmit = async (e) => {
@@ -292,6 +327,7 @@ function ExpensesManagment({ isDrawerOpen }) {
           filterCategoryId,
           1
         );
+        fetchTotalSumByCurrency();
       }
     } catch (error) {
       setErrorMessage(
@@ -313,7 +349,7 @@ function ExpensesManagment({ isDrawerOpen }) {
         employee_id: data.employee_id || '',
         category_id: data.category_id || '',
         name: data.name || '',
-        amount: data.amount || '',
+        amount: data.amount ? data.amount.toString().replace(/,/g, '') : '',
         note: data.note || '',
         branch_id: data.branch_id || '',
         user_id: getCurrentUserId(),
@@ -353,6 +389,7 @@ function ExpensesManagment({ isDrawerOpen }) {
           filterCategoryId,
           1
         );
+        fetchTotalSumByCurrency();
       }
     } catch (error) {
       setErrorMessage('هەڵە ڕوویدا لە سڕینەوە');
@@ -392,6 +429,7 @@ function ExpensesManagment({ isDrawerOpen }) {
       field,
       isAsc ? 'desc' : 'asc'
     );
+    fetchTotalSumByCurrency();
   };
 
   const handleChangeWithErrorReset = (e) => {
@@ -415,6 +453,24 @@ function ExpensesManagment({ isDrawerOpen }) {
               {selectedExpenseId ? 'گۆڕینی مەسرووفات' : 'زیادکردنی مەسرووفات'}
             </Typography>
             <form onSubmit={handleSubmit}>
+              <TextField
+                select
+                fullWidth
+                label="کارمەند"
+                name="employee_id"
+                value={formData.employee_id}
+                onChange={handleChangeWithErrorReset}
+                error={!!formErrors.employee_id}
+                helperText={formErrors.employee_id}
+                sx={{ mb: 2 }}
+              >
+                {employees.map((emp) => (
+                  <MenuItem key={emp.id} value={emp.id}>
+                    {emp.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+
               <TextField
                 select
                 fullWidth
@@ -516,24 +572,6 @@ function ExpensesManagment({ isDrawerOpen }) {
                   <TextField
                     select
                     fullWidth
-                    label="کارمەند"
-                    name="employee_id"
-                    value={formData.employee_id}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.employee_id}
-                    helperText={formErrors.employee_id}
-                  >
-                    {employees.map((emp) => (
-                      <MenuItem key={emp.id} value={emp.id}>
-                        {emp.name}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={6}>
-                  <TextField
-                    select
-                    fullWidth
                     label="لق"
                     name="branch_id"
                     value={formData.branch_id}
@@ -544,6 +582,24 @@ function ExpensesManagment({ isDrawerOpen }) {
                     {branches.map((branch) => (
                       <MenuItem key={branch.id} value={branch.id}>
                         {branch.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="کارمەند"
+                    name="employee_id"
+                    value={formData.employee_id}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.employee_id}
+                    helperText={formErrors.employee_id}
+                  >
+                    {employees.map((emp) => (
+                      <MenuItem key={emp.id} value={emp.id}>
+                        {emp.name}
                       </MenuItem>
                     ))}
                   </TextField>
@@ -577,32 +633,33 @@ function ExpensesManagment({ isDrawerOpen }) {
                 </Grid>
                 <Grid item xs={4}>
                   <Button
-                          type="button"
-                          fullWidth
-                          variant="contained"
-                          color="info"
-                      onClick={() => {
-                            setFormData({ ...initialFormData, user_id: getCurrentUserId() });
-                            setFormErrors({});
-                            setSelectedExpenseId(null);
-                            setErrorMessage('');
-                            setSearch('');
-                            setFilterBranchId('');
-                            setFilterEmployeeId('');
-                            setFilterCategoryId('');
-                            setCurrentPage(1);
-                            fetchExpenses(
-                              '', // search
-                              filterDateRange, // keep the current date range
-                              '', // branch
-                              '', // employee
-                              '', // category
-                              1 // page
-                            );
-                          }}
-                        >
-                          پاکردنەوە
-                        </Button>
+                    type="button"
+                    fullWidth
+                    variant="contained"
+                    color="info"
+                    onClick={() => {
+                      setFormData({ ...initialFormData, user_id: getCurrentUserId() });
+                      setFormErrors({});
+                      setSelectedExpenseId(null);
+                      setErrorMessage('');
+                      setSearch('');
+                      setFilterBranchId('');
+                      setFilterEmployeeId('');
+                      setFilterCategoryId('');
+                      setCurrentPage(1);
+                      fetchExpenses(
+                        '', // search
+                        filterDateRange, // keep the current date range
+                        '', // branch
+                        '', // employee
+                        '', // category
+                        1 // page
+                      );
+                      fetchTotalSumByCurrency();
+                    }}
+                  >
+                    پاکردنەوە
+                  </Button>
                 </Grid>
               </Grid>
             </form>
@@ -627,7 +684,7 @@ function ExpensesManagment({ isDrawerOpen }) {
                       endAdornment: (
                         <InputAdornment position="end">
                           <Tooltip title="هەموو داتاکان">
-                            <IconButton onClick={() => { setSearch(''); fetchExpenses(); }}>
+                            <IconButton onClick={() => { setSearch(''); fetchExpenses(); fetchTotalSumByCurrency(); }}>
                               <SearchIcon />
                             </IconButton>
                           </Tooltip>
@@ -646,6 +703,7 @@ function ExpensesManagment({ isDrawerOpen }) {
                       setFilterBranchId(e.target.value);
                       setCurrentPage(1);
                       fetchExpenses(search, filterDateRange, e.target.value, filterEmployeeId, filterCategoryId, 1);
+                      fetchTotalSumByCurrency();
                     }}
                   >
                     <MenuItem value="">هەموو لقەکان</MenuItem>
@@ -664,6 +722,7 @@ function ExpensesManagment({ isDrawerOpen }) {
                       setFilterEmployeeId(e.target.value);
                       setCurrentPage(1);
                       fetchExpenses(search, filterDateRange, filterBranchId, e.target.value, filterCategoryId, 1);
+                      fetchTotalSumByCurrency();
                     }}
                   >
                     <MenuItem value="">هەموو کارمەندان</MenuItem>
@@ -682,6 +741,7 @@ function ExpensesManagment({ isDrawerOpen }) {
                       setFilterCategoryId(e.target.value);
                       setCurrentPage(1);
                       fetchExpenses(search, filterDateRange, filterBranchId, filterEmployeeId, e.target.value, 1);
+                      fetchTotalSumByCurrency();
                     }}
                   >
                     <MenuItem value="">هەموو گرووپەکان</MenuItem>
@@ -788,9 +848,8 @@ function ExpensesManagment({ isDrawerOpen }) {
                           {categories.find((c) => c.id === expense.category_id)?.name || expense.category_id}
                         </TableCell>
                         <TableCell>{expense.name}</TableCell>
-                        {/* Amount with symbol */}
                         <TableCell>
-                          {`${currencies.find((cur) => cur.id === expense.currency_id)?.symbol || ''}${formatNumberWithCommas(expense.amount)}`}
+                          {formatNumberWithCommas(expense.amount)} {currencies.find((c) => c.id === expense.currency_id)?.symbol || ''}
                         </TableCell>
                         <TableCell>
                           {employees.find((e) => e.id === expense.employee_id)?.name || expense.employee_id}
@@ -826,7 +885,7 @@ function ExpensesManagment({ isDrawerOpen }) {
                       کۆی گشتی بڕ:
                     </TableCell>
                     <TableCell colSpan={6} align="left" sx={{ fontWeight: 'bold' }}>
-                      {Object.entries(sumByCurrency).map(([symbol, total]) => (
+                      {Object.entries(totalSumByCurrency).map(([symbol, total]) => (
                         <span key={symbol} style={{ marginRight: 16 }}>
                           {symbol}{formatNumberWithCommas(total)}
                         </span>
@@ -861,6 +920,12 @@ function ExpensesManagment({ isDrawerOpen }) {
             employees={employees}
             currencies={currencies}
             company={company}
+              filters={{
+              branch: filterBranchId,
+              employee: filterEmployeeId,
+              category: filterCategoryId,
+              dateRange: filterDateRange,
+            }}
           />
         }
         fileName="expenses_report.pdf"

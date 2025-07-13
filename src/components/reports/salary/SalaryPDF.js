@@ -1,14 +1,13 @@
 import React from 'react';
-import { Page, Text, View, Document, StyleSheet, Font, Image } from '@react-pdf/renderer';
+import { Document, Page, Text, View, StyleSheet, Font, Image } from '@react-pdf/renderer';
 import Rudaw from '../../../assets/fonts/rudawregular2.ttf';
 
-// 1. Font registration
+// Register Kurdish font (optional, remove if not available)
 Font.register({
   family: 'Rudaw',
   fonts: [{ src: Rudaw, fontWeight: 'normal' }],
 });
 
-// 2. Styles
 const styles = StyleSheet.create({
   page: {
     padding: 24,
@@ -97,7 +96,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     paddingTop: 4,
   },
-  footer: {
+   footer: {
     position: 'absolute',
     left: 24,
     right: 24,
@@ -133,43 +132,42 @@ const styles = StyleSheet.create({
   // Column widths
   col1: { flex: 0.5 },
   col2: { flex: 1.5 },
-  col3: { flex: 2 },
+  col3: { flex: 1.5 },
   col4: { flex: 1.5 },
-  col5: { flex: 2 },
+  col5: { flex: 1.5 },
   col6: { flex: 1.5 },
   col7: { flex: 2 },
-  col8: { flex: 1.5 },
+  col8: { flex: 2 },
 });
 
-// 3. Utility function
-function getSumByCurrency(expenses, currencies) {
-  const sums = {};
-  expenses.forEach(exp => {
-    const currency = currencies.find(cur => cur.id === exp.currency_id);
-    const symbol = currency?.symbol || '';
-    const key = symbol || exp.currency_id || '';
-    const amount = Number(exp.amount || 0);
-    if (!sums[key]) sums[key] = 0;
-    sums[key] += amount;
-  });
-  return sums;
-}
 function formatNumberWithCommas(value) {
   if (value === null || value === undefined) return '';
   return Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// 4. Main component
-const ExpensesPDF = ({
-  expenses,
-  categories,
-  branches,
-  employees,
-  currencies,
+// Sum by currency
+function getSumByCurrency(salaries, currencies) {
+  const sums = {};
+  salaries.forEach(sal => {
+    const currency = currencies.find(cur => cur.id === sal.currency_id);
+    const symbol = currency?.symbol || '';
+    const key = symbol || sal.currency_id || '';
+    const amount = Number(sal.amount || 0);
+    if (!sums[key]) sums[key] = 0;
+    sums[key] += amount;
+  });
+  return sums;
+}
+
+const SalaryPDF = ({
+  salaries = [],
+  employees = [],
+  branches = [],
+  currencies = [],
   company,
   filters = {},
 }) => {
-  const sumByCurrency = getSumByCurrency(expenses, currencies);
+  const sumByCurrency = getSumByCurrency(salaries, currencies);
 
   // Prepare filter display
   const filterTexts = [];
@@ -180,10 +178,6 @@ const ExpensesPDF = ({
   if (filters.employee) {
     const emp = employees.find(e => e.id === filters.employee);
     filterTexts.push(`کارمەند: ${emp ? emp.name : filters.employee}`);
-  }
-  if (filters.category) {
-    const cat = categories.find(c => c.id === filters.category);
-    filterTexts.push(`گرووپ: ${cat ? cat.name : filters.category}`);
   }
   if (filters.dateRange) {
     filterTexts.push(`بەروار: ${filters.dateRange.start || ''} - ${filters.dateRange.end || ''}`);
@@ -211,50 +205,49 @@ const ExpensesPDF = ({
           )}
         </View>
 
-        {/* Title */}
-        <Text style={styles.title}>ڕاپۆرتی مەسرووفات</Text>
+               <Text style={styles.title}>ڕاپۆرتی مووچەکان</Text>
 
-        {/* Filters Used */}
-        <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          {filterTexts.length > 0 && (
-            <Text style={[styles.filters, { marginBottom: 0 }]}>
-               گەڕان بەپێی : {filterTexts.join(' | ')}
+         <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            {filterTexts.length > 0 && (
+              <Text style={[styles.filters, { marginBottom: 0 }]}>
+                گەڕان بەپێی : {filterTexts.join(' | ')}
+              </Text>
+            )}
+            <Text style={[styles.exportDate, { marginBottom: 0 }]}>
+              بەرواری چاپ: {exportDate}
             </Text>
-          )}
-          <Text style={[styles.exportDate, { marginBottom: 0 }]}>
-            بەرواری چاپ: {exportDate}
-          </Text>
-        </View>
+          </View>
+
+         
 
         {/* Table */}
         <View style={styles.table}>
           {/* Header row */}
           <View style={[styles.row, styles.header]}>
             <Text style={[styles.cell, styles.col1]}>#</Text>
-            <Text style={[styles.cell, styles.col2]}>گرووپ</Text>
-            <Text style={[styles.cell, styles.col3]}>ناو</Text>
-            <Text style={[styles.cell, styles.col4]}>بڕ</Text>
-            <Text style={[styles.cell, styles.col5]}>کارمەند</Text>
-            <Text style={[styles.cell, styles.col6]}>لق</Text>
-            <Text style={[styles.cell, styles.col7]}>تێبینی</Text>
-            <Text style={[styles.cell, styles.col8]}>بەروار</Text>
+            <Text style={[styles.cell, styles.col2]}>کارمەند</Text>
+            <Text style={[styles.cell, styles.col3]}>بڕ</Text>
+            <Text style={[styles.cell, styles.col5]}>دەستپێکردن</Text>
+            <Text style={[styles.cell, styles.col6]}>کۆتایی</Text>
+            <Text style={[styles.cell, styles.col7]}>لق</Text>
+            <Text style={[styles.cell, styles.col8]}>تێبینی</Text>
           </View>
-
           {/* Data rows */}
-          {expenses.map(exp => (
-            <View style={styles.row} key={exp.id}>
-              <Text style={[styles.cell, styles.col1]}>{exp.id}</Text>
-              <Text style={[styles.cell, styles.col2]}>{categories.find(c => c.id === exp.category_id)?.name || ''}</Text>
-              <Text style={[styles.cell, styles.col3]}>{exp.name}</Text>
-              <Text style={[styles.cell, styles.col4]}>
-                {(currencies.find(cur => cur.id === exp.currency_id)?.symbol || '') + formatNumberWithCommas(exp.amount)}
+          {salaries.map((salary, idx) => (
+            <View style={styles.row} key={salary.id}>
+              <Text style={[styles.cell, styles.col1]}>{idx + 1}</Text>
+              <Text style={[styles.cell, styles.col2]}>
+                {employees.find(e => e.id === salary.employee_id)?.name || salary.employee_id}
               </Text>
-              <Text style={[styles.cell, styles.col5]}>{employees.find(e => e.id === exp.employee_id)?.name || ''}</Text>
-              <Text style={[styles.cell, styles.col6]}>{branches.find(b => b.id === exp.branch_id)?.name || ''}</Text>
-              <Text style={[styles.cell, styles.col7]}>{exp.note}</Text>
-              <Text style={[styles.cell, styles.col8]}>
-                {new Date(exp.expense_date).toLocaleDateString('ckb-IQ')}
+              <Text style={[styles.cell, styles.col3]}>
+                {(currencies.find(cur => cur.id === salary.currency_id)?.symbol || '') + formatNumberWithCommas(salary.amount)}
               </Text>
+              <Text style={[styles.cell, styles.col5]}>{salary.salary_period_start}</Text>
+              <Text style={[styles.cell, styles.col6]}>{salary.salary_period_end}</Text>
+              <Text style={[styles.cell, styles.col7]}>
+                {branches.find(b => b.id === salary.branch_id)?.name || salary.branch_id}
+              </Text>
+              <Text style={[styles.cell, styles.col8]}>{salary.note}</Text>
             </View>
           ))}
 
@@ -264,7 +257,8 @@ const ExpensesPDF = ({
             <Text style={styles.sumText}>
               {Object.entries(sumByCurrency).map(([symbol, total], idx, arr) => (
                 <Text key={symbol} style={{ marginHorizontal: 1 }}>
-                  {symbol}{formatNumberWithCommas(total)}{idx < arr.length - 1 ? ' | ' : ''}
+                  {symbol}{formatNumberWithCommas(total)}
+                  {idx < arr.length - 1 ? ' | ' : ''}
                 </Text>
               ))}
             </Text>
@@ -281,29 +275,29 @@ const ExpensesPDF = ({
           </View>
         </View>
 
-        {/* Footer */}
-        {(company?.address || company?.supplier_name) && (
-          <View style={styles.footer}>
-            {company?.address && (
-              <Text style={styles.footerRight}>ناونیشان: {company.address}</Text>
-            )}
-            {company?.supplier_name && (
-              <Text style={styles.footerLeft}>{company.supplier_name}</Text>
-            )}
-          </View>
-        )}
-
-        {/* Page Number */}
-        <Text
-          style={styles.pageNumber}
-          render={({ pageNumber, totalPages }) =>
-            `${pageNumber} / ${totalPages}`
-          }
-          fixed
-        />
+       {/* Footer */}
+              {(company?.address || company?.supplier_name) && (
+                <View style={styles.footer}>
+                  {company?.address && (
+                    <Text style={styles.footerRight}>ناونیشان: {company.address}</Text>
+                  )}
+                  {company?.supplier_name && (
+                    <Text style={styles.footerLeft}>{company.supplier_name}</Text>
+                  )}
+                </View>
+              )}
+      
+              {/* Page Number */}
+              <Text
+                style={styles.pageNumber}
+                render={({ pageNumber, totalPages }) =>
+                  `${pageNumber} / ${totalPages}`
+                }
+                fixed
+              />
       </Page>
     </Document>
   );
 };
 
-export default ExpensesPDF;
+export default SalaryPDF;
