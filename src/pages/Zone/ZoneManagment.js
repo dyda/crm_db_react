@@ -5,7 +5,6 @@ import {
   Typography,
   Box,
   TextField,
-  Button,
   IconButton,
   InputAdornment,
   Snackbar,
@@ -17,6 +16,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableFooter,
   Paper,
   Pagination,
 } from '@mui/material';
@@ -27,6 +27,8 @@ import {
 } from '@mui/icons-material';
 import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
+import RegisterButton from '../../components/reports/common/RegisterButton';
+import ClearButton from '../../components/reports/common/ClearButton';
 
 function ZoneManagement({ isDrawerOpen }) {
   const initialFormData = { name: '', description: '' };
@@ -157,6 +159,14 @@ function ZoneManagement({ isDrawerOpen }) {
     handleChange(e, setFormData);
   };
 
+  // Clear form handler
+  const handleClearForm = () => {
+    resetForm(setFormData, initialFormData);
+    setFormErrors({});
+    setSelectedZoneId(null);
+    setErrorMessage('');
+  };
+
   return (
     <Box sx={{ marginRight: isDrawerOpen ? '250px' : '0', transition: 'margin-right 0.3s ease-in-out' }}>
       <Grid container spacing={2}>
@@ -197,15 +207,21 @@ function ZoneManagement({ isDrawerOpen }) {
                   onChange={(e) => handleChange(e, setFormData)}
                   sx={{ marginBottom: 2 }}
                 />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="success"
-                  fullWidth
-                  disabled={loading}
-                >
-                  {loading ? 'Loading...' : selectedZoneId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                </Button>
+                <Grid container spacing={1}>
+                  <Grid item xs={12} sm={8}>
+                    <RegisterButton
+                      loading={loading}
+                      fullWidth
+                      children={selectedZoneId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <ClearButton
+                      onClick={handleClearForm}
+                      fullWidth
+                    />
+                  </Grid>
+                </Grid>
               </form>
             </Box>
           </Card>
@@ -224,35 +240,47 @@ function ZoneManagement({ isDrawerOpen }) {
                     <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
-                {fetching ? (
-                  <Typography align="center">بارکردن...</Typography>
-                ) : (
-                  <TableBody>
-                    {currentZones.length > 0 ? (
-                      currentZones.map((zone) => (
-                        <TableRow key={zone.id}>
-                          <TableCell>{zone.id}</TableCell>
-                          <TableCell>{zone.name}</TableCell>
-                          <TableCell>{zone.description}</TableCell>
-                          <TableCell>
-                            <IconButton color="primary" onClick={() => handleEditClick(zone)}>
-                              <EditIcon />
-                            </IconButton>
-                            <IconButton color="secondary" onClick={() => handleDeleteClick(zone.id)}>
-                              <DeleteIcon />
-                            </IconButton>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={4} align="center">
-                          هیچ داتایەک نەدۆزرایەوە
+                <TableBody>
+                  {fetching ? (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        بارکردن...
+                      </TableCell>
+                    </TableRow>
+                  ) : currentZones.length > 0 ? (
+                    currentZones.map((zone) => (
+                      <TableRow key={zone.id}>
+                        <TableCell>{zone.id}</TableCell>
+                        <TableCell>{zone.name}</TableCell>
+                        <TableCell>{zone.description}</TableCell>
+                        <TableCell>
+                          <IconButton color="primary" onClick={() => handleEditClick(zone)}>
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton color="secondary" onClick={() => handleDeleteClick(zone.id)}>
+                            <DeleteIcon />
+                          </IconButton>
                         </TableCell>
                       </TableRow>
-                    )}
-                  </TableBody>
-                )}
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        هیچ داتایەک نەدۆزرایەوە
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+                <TableFooter>
+                  <TableRow>
+                    <TableCell colSpan={2} align="right" sx={{ fontWeight: 'bold' }}>
+                      ژمارەی گشتی :
+                    </TableCell>
+                    <TableCell colSpan={2} align="left" sx={{ fontWeight: 'bold' }}>
+                      {zones.length}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
               </Table>
             </TableContainer>
             <Box mt={2} display="flex" justifyContent="center">
@@ -268,7 +296,6 @@ function ZoneManagement({ isDrawerOpen }) {
           </Card>
         </Grid>
       </Grid>
-
 
       <ConfirmDialog
         open={openDialog}

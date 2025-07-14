@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, MenuItem, TextField, Grid } from '@mui/material';
+import { MenuItem, TextField, Grid } from '@mui/material';
 
 const options = [
   { label: 'ئەمڕۆ', value: 'today' },
@@ -64,13 +64,13 @@ const DateRangeSelector = ({ value, onChange }) => {
   };
 
   return (
-    <Box sx={{ mb: 2 }}>
+    <>
       <TextField
         select
         label="کاتی گەڕان"
         value={mode}
         onChange={handleModeChange}
-        sx={{ minWidth: 180, mb: mode === 'custom' ? 2 : 0 }}
+        sx={{ minWidth: 180, mb: 0 }}
         fullWidth
       >
         {options.map((opt) => (
@@ -80,8 +80,8 @@ const DateRangeSelector = ({ value, onChange }) => {
         ))}
       </TextField>
       {mode === 'custom' && (
-         <Grid container spacing={1}>
-        <Grid item xs={12} sm={6}>
+        <Grid container spacing={1} sx={{ mt: 0 }}>
+          <Grid item xs={12} sm={6}>
             <TextField
               label="لە"
               type="date"
@@ -90,9 +90,10 @@ const DateRangeSelector = ({ value, onChange }) => {
               onChange={handleCustomChange}
               InputLabelProps={{ shrink: true }}
               fullWidth
+              sx={{ mb: 0 }}
             />
           </Grid>
-            <Grid item xs={12} sm={6}>
+          <Grid item xs={12} sm={6}>
             <TextField
               label="بۆ"
               type="date"
@@ -101,11 +102,12 @@ const DateRangeSelector = ({ value, onChange }) => {
               onChange={handleCustomChange}
               InputLabelProps={{ shrink: true }}
               fullWidth
+              sx={{ mb: 0 }}
             />
           </Grid>
         </Grid>
       )}
-    </Box>
+    </>
   );
 };
 

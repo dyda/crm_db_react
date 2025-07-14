@@ -5,7 +5,6 @@ import {
   Typography,
   Box,
   TextField,
-  Button,
   IconButton,
   InputAdornment,
   Snackbar,
@@ -15,6 +14,7 @@ import {
   TableBody,
   TableCell,
   TableContainer,
+  TableFooter,
   TableHead,
   TableRow,
   Paper,
@@ -27,6 +27,8 @@ import {
 } from '@mui/icons-material';
 import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
+import RegisterButton from '../../components/reports/common/RegisterButton';
+import ClearButton from '../../components/reports/common/ClearButton';
 
 function CityManagement({ isDrawerOpen }) {
   const initialFormData = { name: '', description: '' };
@@ -34,7 +36,7 @@ function CityManagement({ isDrawerOpen }) {
 
   // States
   const [formData, setFormData] = useState(initialFormData);
-  const [formErrors, setFormErrors] = useState({}); // Track field errors
+  const [formErrors, setFormErrors] = useState({});
   const [cities, setCities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -154,11 +156,21 @@ function CityManagement({ isDrawerOpen }) {
   const handleSnackbarClose = () => setSuccess(false);
   const handleErrorSnackbarClose = () => setErrorMessage('');
   const handleDialogClose = () => setOpenDialog(false);
+
   const handleChangeWithErrorReset = (e, setFormData) => {
     setErrorMessage('');
-    setFormErrors((prevErrors) => ({ ...prevErrors, [e.target.name]: '' })); // Clear error for the field
+    setFormErrors((prevErrors) => ({ ...prevErrors, [e.target.name]: '' }));
     handleChange(e, setFormData);
   };
+
+  // Clear form handler
+  const handleClearForm = () => {
+    resetForm(setFormData, initialFormData);
+    setFormErrors({});
+    setSelectedCityId(null);
+    setErrorMessage('');
+  };
+
   return (
     <Box sx={{ marginRight: isDrawerOpen ? '250px' : '0', transition: 'margin-right 0.3s ease-in-out' }}>
       <Grid container spacing={2}>
@@ -170,25 +182,25 @@ function CityManagement({ isDrawerOpen }) {
                 {selectedCityId ? 'گۆڕینی شار' : 'زیادکردنی شار'}
               </Typography>
               <form onSubmit={handleSubmit}>
-              <TextField
-                    fullWidth
-                    label="ناوی شار"
-                    name="name"
-                    value={formData.name}
-                    onChange={(e) => handleChangeWithErrorReset(e, setFormData)}
-                    error={!!formErrors.name} // Set red border if there's an error
-                    helperText={formErrors.name} // Show error message
-                    sx={{ marginBottom: 2 }}
-                    InputProps={{
-                      endAdornment: formData.name && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'name')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
+                <TextField
+                  fullWidth
+                  label="ناوی شار"
+                  name="name"
+                  value={formData.name}
+                  onChange={(e) => handleChangeWithErrorReset(e, setFormData)}
+                  error={!!formErrors.name}
+                  helperText={formErrors.name}
+                  sx={{ marginBottom: 2 }}
+                  InputProps={{
+                    endAdornment: formData.name && (
+                      <InputAdornment position="end">
+                        <IconButton onClick={() => clearTextField(setFormData, 'name')} edge="end">
+                          <ClearIcon />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
                 <TextField
                   fullWidth
                   label="وەسف"
@@ -199,15 +211,21 @@ function CityManagement({ isDrawerOpen }) {
                   onChange={(e) => handleChange(e, setFormData)}
                   sx={{ marginBottom: 2 }}
                 />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="success"
-                  fullWidth
-                  disabled={loading}
-                >
-                  {loading ? 'Loading...' : selectedCityId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                </Button>
+                <Grid container spacing={1}>
+                  <Grid item xs={12} sm={8}>
+                    <RegisterButton
+                      loading={loading}
+                      fullWidth
+                      children={selectedCityId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={4}>
+                    <ClearButton
+                      onClick={handleClearForm}
+                      fullWidth
+                    />
+                  </Grid>
+                </Grid>
               </form>
             </Box>
           </Card>
@@ -227,60 +245,76 @@ function CityManagement({ isDrawerOpen }) {
                   </TableRow>
                 </TableHead>
                 {fetching ? (
-  <Typography align="center">بارکردن...</Typography>
-) : (
-  <TableBody>
-    {currentCities.length > 0 ? (
-      currentCities.map((city) => (
-        <TableRow key={city.id}>
-          <TableCell>{city.id}</TableCell>
-          <TableCell>{city.name}</TableCell>
-          <TableCell>{city.description}</TableCell>
-          <TableCell>
-            <IconButton color="primary" onClick={() => handleEditClick(city)}>
-              <EditIcon />
-            </IconButton>
-            <IconButton color="secondary" onClick={() => handleDeleteClick(city.id)}>
-              <DeleteIcon />
-            </IconButton>
-          </TableCell>
-        </TableRow>
-      ))
-    ) : (
-      <TableRow>
-        <TableCell colSpan={4} align="center">
-          هیچ داتایەک نەدۆزرایەوە
-        </TableCell>
-      </TableRow>
-    )}
-  </TableBody>
-)}
+                  <TableBody>
+                    <TableRow>
+                      <TableCell colSpan={4} align="center">
+                        بارکردن...
+                      </TableCell>
+                    </TableRow>
+                  </TableBody>
+                ) : (
+                  <TableBody>
+                    {currentCities.length > 0 ? (
+                      currentCities.map((city) => (
+                        <TableRow key={city.id}>
+                          <TableCell>{city.id}</TableCell>
+                          <TableCell>{city.name}</TableCell>
+                          <TableCell>{city.description}</TableCell>
+                          <TableCell>
+                            <IconButton color="primary" onClick={() => handleEditClick(city)}>
+                              <EditIcon />
+                            </IconButton>
+                            <IconButton color="secondary" onClick={() => handleDeleteClick(city.id)}>
+                              <DeleteIcon />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={4} align="center">
+                          هیچ داتایەک نەدۆزرایەوە
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                )}
+                  <TableFooter>
+            <TableRow>
+              <TableCell colSpan={2} align="right" sx={{ fontWeight: 'bold' }}>
+                ژمارەی گشتی :
+              </TableCell>
+              <TableCell colSpan={2} align="left" sx={{ fontWeight: 'bold' }}>
+                {cities.length}
+              </TableCell>
+            </TableRow>
+          </TableFooter>
               </Table>
             </TableContainer>
             <Box mt={2} display="flex" justifyContent="center">
-            {cities.length > 0 && (
+              {cities.length > 0 && (
                 <Pagination
-                    count={Math.ceil(cities.length / rowsPerPage)}
-                    page={currentPage}
-                    onChange={handlePageChange}
-                    color="primary"
+                  count={Math.ceil(cities.length / rowsPerPage)}
+                  page={currentPage}
+                  onChange={handlePageChange}
+                  color="primary"
                 />
-                )}
+              )}
             </Box>
           </Card>
         </Grid>
       </Grid>
 
       {/* Dialog for Deletion */}
-        <ConfirmDialog
-          open={openDialog}
-          onClose={handleDialogClose}
-          onConfirm={handleDeleteConfirm}
-          title="سڕینەوەی شار"
-          description="ئایە دڵنیایت لە سڕینەوەی ئەم شارە؟ ئەم کردارە گەرێنەوە نییە."
-          confirmText="سڕینەوە"
-          cancelText="پاشگەزبوونەوە"
-        />
+      <ConfirmDialog
+        open={openDialog}
+        onClose={handleDialogClose}
+        onConfirm={handleDeleteConfirm}
+        title="سڕینەوەی شار"
+        description="ئایە دڵنیایت لە سڕینەوەی ئەم شارە؟ ئەم کردارە گەرێنەوە نییە."
+        confirmText="سڕینەوە"
+        cancelText="پاشگەزبوونەوە"
+      />
 
       {/* Success Snackbar */}
       <Snackbar

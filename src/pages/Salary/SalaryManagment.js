@@ -5,7 +5,6 @@ import {
   Typography,
   Box,
   TextField,
-  Button,
   IconButton,
   InputAdornment,
   Snackbar,
@@ -30,6 +29,9 @@ import {
 } from '@mui/icons-material';
 import TableSortLabel from '@mui/material/TableSortLabel';
 import DialogPdf from '../../components/utils/DialogPdf';
+import RegisterButton from '../../components/reports/common/RegisterButton';
+import ClearButton from '../../components/reports/common/ClearButton';
+import ReportButton from '../../components/reports/common/ReportButton';
 import SalaryPDF from '../../components/reports/salary/SalaryPDF';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import DateRangeSelector from '../../components/utils/DateRangeSelector';
@@ -556,37 +558,27 @@ const fetchTotalSumByCurrency = async () => {
               </TextField>
 
               <Grid container spacing={2} sx={{ mt: 1 }}>
-                <Grid item xs={8}>
-                  <Button
-                    type="submit"
+                 <Grid item xs={8}>
+                  <RegisterButton
+                    loading={loading}
                     fullWidth
-                    variant="contained"
-                    color="success"
-                    disabled={loading}
-                  >
-                    {loading ? 'چاوەڕوان بە...' : selectedSalaryId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                  </Button>
+                    children={selectedSalaryId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                  />
                 </Grid>
-                <Grid item xs={4}>
-                  <Button
-                    type="button"
-                    fullWidth
-                    variant="contained"
-                    color="info"
-                    onClick={() => {
-                      setFormData({ ...initialFormData, user_id: getCurrentUserId() });
-                      setFormErrors({});
-                      setSelectedSalaryId(null);
-                      setErrorMessage('');
-                      setCurrentPage(1);
-                      handleFilter(1, rowsPerPage, sortBy, sortOrder);
-                      fetchTotalSumByCurrency(); // <-- Add this line
-
-                    }}
-                  >
-                    پاکردنەوە
-                  </Button>
-                </Grid>
+               <Grid item xs={4}>
+                <ClearButton
+                  onClick={() => {
+                    setFormData({ ...initialFormData, user_id: getCurrentUserId() });
+                    setFormErrors({});
+                    setSelectedSalaryId(null);
+                    setErrorMessage('');
+                    setCurrentPage(1);
+                    handleFilter(1, rowsPerPage, sortBy, sortOrder);
+                    fetchTotalSumByCurrency();
+                  }}
+                  fullWidth
+                />
+              </Grid>
               </Grid>
             </form>
           </Card>
@@ -632,14 +624,11 @@ const fetchTotalSumByCurrency = async () => {
                     <DateRangeSelector value={filterDateRange} onChange={setFilterDateRange} />
                   </Grid>
                   <Grid item xs={12} md={3}>
-                    <Button
-                      variant="contained"
-                      color="secondary"
-                      fullWidth
-                      onClick={handleOpenPdfPreview}
-                    >
-                      ڕاپۆرت
-                    </Button>
+                     <ReportButton
+                          onClick={handleOpenPdfPreview}
+                          fullWidth
+                          children="چاپکردن"
+                        />
                   </Grid>
                 </Grid>
               </Box>
@@ -773,6 +762,7 @@ const fetchTotalSumByCurrency = async () => {
             </Box>
           </Card>
         </Grid>
+        
       </Grid>
 
       {/* Delete Dialog */}
