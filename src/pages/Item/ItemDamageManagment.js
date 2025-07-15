@@ -379,7 +379,7 @@ const { company, fetchCompanyInfo } = useCompanyInfo();
                 ))}
               </TextField>
               <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} sm={9}>
+                <Grid item xs={12} sm={8}>
                   <ItemAutocomplete
                     value={formData.item_id}
                     onChange={val => handleChangeWithErrorReset({ target: { name: 'item_id', value: val } })}
@@ -387,7 +387,7 @@ const { company, fetchCompanyInfo } = useCompanyInfo();
                     helperText={formErrors.item_id}
                   />
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid item xs={12} sm={4}>
                   <TextField
                     select
                     fullWidth
