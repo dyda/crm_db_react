@@ -14,11 +14,13 @@ import {
 import TableSortLabel from '@mui/material/TableSortLabel';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
-import { BASE_URL } from '../../config/constants';
 import ItemPriceModal from './ItemPriceModal';
 import ItemQuantityModal from './ItemQuantityModal';
 import DialogPdf from '../../components/utils/DialogPdf';
 import ItemInfoPDF from '../../components/reports/item/ItemInfoPDF';
+import { useCompanyInfo } from '../../hooks/useCompanyInfo';
+import { BASE_URL } from '../../config/constants';
+
 
 function ItemManagment({ isDrawerOpen }) {
   // --- State ---
@@ -65,7 +67,7 @@ function ItemManagment({ isDrawerOpen }) {
   const [totalCount, setTotalCount] = useState(0);
   const [openPdfPreview, setOpenPdfPreview] = useState(false);
   const [reportItems, setReportItems] = useState([]);
-  const [company, setCompany] = useState({});
+  const { company, fetchCompanyInfo } = useCompanyInfo();
 
   // --- Effects ---
   useEffect(() => {
@@ -138,22 +140,7 @@ function ItemManagment({ isDrawerOpen }) {
     setWarehouses(res.data || []);
   };
 
-  const fetchCompanyInfo = async () => {
-    try {
-      const res = await axiosInstance.get('company/last-insert-id');
-      if (res.data.id) {
-        const companyRes = await axiosInstance.get(`company/show/${res.data.id}`);
-        setCompany({
-          ...companyRes.data,
-          logo_1: companyRes.data.logo_1
-            ? `${BASE_URL}${companyRes.data.logo_1}`
-            : '',
-        });
-      }
-    } catch {
-      setCompany(null);
-    }
-  };
+
 
   // --- Handlers: Form ---
   const handleImageUpload = (event) => {

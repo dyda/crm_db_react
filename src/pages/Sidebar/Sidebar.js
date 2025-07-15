@@ -150,6 +150,9 @@ const Sidebar = () => {
                 <ListItem button component={Link} to="/item/transaction">
                   <ListItemText inset primary="ڕێکخستنەوەی کۆگا" sx={getTextStyles()} />
                 </ListItem>
+                 <ListItem button component={Link} to="/item/damage">
+                  <ListItemText inset primary="کاڵای خراپ بوو" sx={getTextStyles()} />
+                </ListItem>
               </List>
               <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>
@@ -220,7 +223,7 @@ const Sidebar = () => {
                   <ListItemText inset primary="زۆنەکان" sx={getTextStyles()} />
                 </ListItem>
                 <ListItem button component={Link} to="/region/">
-                  <ListItemText inset primary="ناوچەکان" sx={getTextStyles()} />
+                  <ListItemText inset primary="گەڕەکەکان" sx={getTextStyles()} />
                 </ListItem>
                 <ListItem button component={Link} to="/branch/">
                   <ListItemText inset primary="لقەکان" sx={getTextStyles()} />

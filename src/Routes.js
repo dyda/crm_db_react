@@ -49,6 +49,8 @@ const ItemBrandManagment = lazy(() => import('./pages/Item/ItemBrandManagment'))
 const ItemUnitManagment = lazy(() => import('./pages/Item/ItemUnitManagment'));
 const ItemTypePriceManagment = lazy(() => import('./pages/Item/ItemTypePriceManagment'));
 const ItemTransaction = lazy(() => import('./pages/Item/ItemTransactionManagment'));
+const ItemDamage = lazy(() => import('./pages/Item/ItemDamageManagment'));
+
 
 const RoutesComponent = () => {
   return (
@@ -103,6 +105,7 @@ const RoutesComponent = () => {
         <Route path="/item/unit" element={<ProtectedRoute element={<ItemUnitManagment />} />} />
         <Route path="/item/price/type" element={<ProtectedRoute element={<ItemTypePriceManagment />} />} />
         <Route path="/item/transaction" element={<ProtectedRoute element={<ItemTransaction />} />} />
+        <Route path="/item/damage" element={<ProtectedRoute element={<ItemDamage />} />} />
 
         {/* 404 Not Found */}
         <Route path="*" element={<NotFound />} />

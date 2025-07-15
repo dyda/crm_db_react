@@ -36,7 +36,7 @@ import SalaryPDF from '../../components/reports/salary/SalaryPDF';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import DateRangeSelector from '../../components/utils/DateRangeSelector';
 import { getCurrentUserId } from '../Authentication/auth';
-import { BASE_URL } from '../../config/constants';
+import { useCompanyInfo } from '../../hooks/useCompanyInfo';
 
 function SalaryManagment({ isDrawerOpen }) {
   // --- State ---
@@ -79,7 +79,7 @@ function SalaryManagment({ isDrawerOpen }) {
   const [totalCount, setTotalCount] = useState(0);
   const [openPdfPreview, setOpenPdfPreview] = useState(false);
   const [reportSalaries, setReportSalaries] = useState([]);
-  const [company, setCompany] = useState(null);
+  const { company, fetchCompanyInfo } = useCompanyInfo();
   const [totalSumByCurrency, setTotalSumByCurrency] = useState({});
 
   // --- Effects ---
@@ -165,24 +165,6 @@ const fetchTotalSumByCurrency = async () => {
     setTotalSumByCurrency({});
   }
 };
-
-  // Fetch company info (with logo absolute URL)
-  const fetchCompanyInfo = async () => {
-    try {
-      const res = await axiosInstance.get('company/last-insert-id');
-      if (res.data.id) {
-        const companyRes = await axiosInstance.get(`company/show/${res.data.id}`);
-        setCompany({
-          ...companyRes.data,
-          logo_1: companyRes.data.logo_1
-            ? `${BASE_URL}${companyRes.data.logo_1}`
-            : '',
-        });
-      }
-    } catch (e) {
-      setCompany(null);
-    }
-  };
 
   // Fetch all salaries for report (no pagination)
   const fetchAllSalariesForReport = async () => {

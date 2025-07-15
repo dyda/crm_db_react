@@ -37,7 +37,7 @@ import { getCurrentUserId } from '../Authentication/auth';
 import DateRangeSelector from '../../components/utils/DateRangeSelector';
 import ExpensesPDF from '../../components/reports/expenses/ExpensesPDF';
 import DialogPdf from '../../components/utils/DialogPdf';
-import { BASE_URL } from '../../config/constants';
+import { useCompanyInfo } from '../../hooks/useCompanyInfo';
 
 function ExpensesManagment({ isDrawerOpen }) {
   // Today's date in yyyy-MM-dd format
@@ -57,7 +57,7 @@ function ExpensesManagment({ isDrawerOpen }) {
     search: '',
   };
 
-  const rowsPerPage = 5;
+  const rowsPerPage = 10;
 
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
@@ -79,7 +79,7 @@ function ExpensesManagment({ isDrawerOpen }) {
   const [filterEmployeeId, setFilterEmployeeId] = useState('');
   const [filterCategoryId, setFilterCategoryId] = useState('');
   const [openPdfPreview, setOpenPdfPreview] = useState(false);
-  const [company, setCompany] = useState(null);
+  const { company, fetchCompanyInfo } = useCompanyInfo();
   const [totalCount, setTotalCount] = useState(0);
   const [sortBy, setSortBy] = useState('expense_date');
   const [sortOrder, setSortOrder] = useState('desc');
@@ -142,23 +142,6 @@ function ExpensesManagment({ isDrawerOpen }) {
     fetchTotalSumByCurrency();
     // eslint-disable-next-line
   }, [search, filterDateRange, filterBranchId, filterEmployeeId, filterCategoryId, sortBy, sortOrder]);
-
-  const fetchCompanyInfo = async () => {
-    try {
-      const res = await axiosInstance.get('company/last-insert-id');
-      if (res.data.id) {
-        const companyRes = await axiosInstance.get(`company/show/${res.data.id}`);
-        setCompany({
-          ...companyRes.data,
-          logo_1: companyRes.data.logo_1
-            ? `${BASE_URL}${companyRes.data.logo_1}`
-            : '',
-        });
-      }
-    } catch (e) {
-      setCompany(null);
-    }
-  };
 
   const fetchAllData = async () => {
     setFetching(true);

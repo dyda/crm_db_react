@@ -1,3 +1,5 @@
+import React from 'react';
+import PropTypes from 'prop-types';
 import { Button, Tooltip } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
@@ -17,5 +19,10 @@ function ReportButton({ onClick, children = 'چاپکردن', ...props }) {
     </Tooltip>
   );
 }
+
+ReportButton.propTypes = {
+  onClick: PropTypes.func.isRequired,
+  children: PropTypes.node,
+};
 
 export default ReportButton;

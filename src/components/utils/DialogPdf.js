@@ -23,7 +23,7 @@ const DialogPdf = ({
         {({ loading }) =>
           loading ? (
             <Button variant="contained" disabled>
-              Loading...
+              چاوەڕوانبە...
             </Button>
           ) : (
             <Button variant="contained" color="primary">
