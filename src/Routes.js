@@ -50,7 +50,11 @@ const ItemUnitManagment = lazy(() => import('./pages/Item/ItemUnitManagment'));
 const ItemTypePriceManagment = lazy(() => import('./pages/Item/ItemTypePriceManagment'));
 const ItemTransaction = lazy(() => import('./pages/Item/ItemTransactionManagment'));
 const ItemDamage = lazy(() => import('./pages/Item/ItemDamageManagment'));
+const ItemTransfer = lazy(() => import('./pages/Item/ItemTransferManagment'));
+const ItemQuantityInfo = lazy(() => import('./pages/Item/ItemQuantityInfo'));
 
+// Serial management
+const SerialManagment = lazy(() => import('./pages/Serial/SerialManagment'));
 
 const RoutesComponent = () => {
   return (
@@ -105,8 +109,14 @@ const RoutesComponent = () => {
         <Route path="/item/unit" element={<ProtectedRoute element={<ItemUnitManagment />} />} />
         <Route path="/item/price/type" element={<ProtectedRoute element={<ItemTypePriceManagment />} />} />
         <Route path="/item/transaction" element={<ProtectedRoute element={<ItemTransaction />} />} />
+        <Route path="/item/transfer" element={<ProtectedRoute element={<ItemTransfer />} />} />
         <Route path="/item/damage" element={<ProtectedRoute element={<ItemDamage />} />} />
+        <Route path="/item/quantity" element={<ProtectedRoute element={<ItemQuantityInfo />} />} />
 
+        {/* Serial management */}
+        <Route path="/serial" element={<ProtectedRoute element={<SerialManagment />} />} />
+
+        
         {/* 404 Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>

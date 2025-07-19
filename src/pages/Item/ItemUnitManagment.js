@@ -21,7 +21,7 @@ function ItemUnitManagment({ isDrawerOpen }) {
     search: '',
   };
 
-  const rowsPerPage = 5;
+  const rowsPerPage = 10;
 
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
@@ -205,7 +205,7 @@ function ItemUnitManagment({ isDrawerOpen }) {
            
               <TextField
                 fullWidth
-                label="فاکتۆری گۆڕین"
+                label="عدد"
                 name="conversion_factor"
                 type="number"
                 value={formData.conversion_factor}
@@ -281,7 +281,7 @@ function ItemUnitManagment({ isDrawerOpen }) {
                   <TableRow>
                     <TableCell>#</TableCell>
                     <TableCell>ناوی یەکە</TableCell>
-                     <TableCell>فاکتۆری گۆڕین</TableCell>
+                     <TableCell>عدد</TableCell>
                     <TableCell>وەسف</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>

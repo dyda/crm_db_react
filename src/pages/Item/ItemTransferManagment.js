@@ -15,40 +15,40 @@ import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
 import ItemAutocomplete from '../../components/Item/ItemAutocomplete';
 import DateRangeSelector from '../../components/utils/DateRangeSelector';
-import DialogPdf from '../../components/utils/DialogPdf';
 import RegisterButton from '../../components/common/RegisterButton';
 import ClearButton from '../../components/common/ClearButton';
 import ReportButton from '../../components/common/ReportButton';
-import ItemDamagePDF from '../../components/reports/item/ItemDamagePDF';
+import DialogPdf from '../../components/utils/DialogPdf';
+import ItemTransferPDF from '../../components/reports/item/ItemTransferPDF';
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';
 import { useItemUnits } from '../../hooks/useItemUnits';
 
-function ItemDamageManagment({ isDrawerOpen }) {
-  // Initial form state
-  const initialFormData = {
-    type: '',
-    warehouse_id: '',
-    item_id: '',
-    unit_id: '',
-    quantity: '',
-    user_id: '',
-    reason: '',
-    date_at: '',
-  };
-
+function ItemTransferManagment({ isDrawerOpen }) {
   const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
     .toISOString()
     .slice(0, 10);
+
+  const initialFormData = {
+    item_id: '',
+    from_warehouse_id: '',
+    to_warehouse_id: '',
+    unit_id: '',
+    quantity: '',
+    employee_id: '',
+    note: '',
+    transfer_date: today,
+    search: '',
+  };
 
   const rowsPerPage = 10;
 
   // States
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
-  const [damages, setDamages] = useState([]);
+  const [transfers, setTransfers] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
   const [warehouses, setWarehouses] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [employees, setEmployees] = useState([]);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -58,24 +58,13 @@ function ItemDamageManagment({ isDrawerOpen }) {
   const [selectedId, setSelectedId] = useState(null);
   const [fetching, setFetching] = useState(false);
   const [openPdfPreview, setOpenPdfPreview] = useState(false);
-  const [reportDamages, setReportDamages] = useState([]);
-  const [allUnits, setAllUnits] = useState([]);
+  const [reportTransfers, setReportTransfers] = useState([]);
 
-  // Filter states
-  const [filterWarehouseId, setFilterWarehouseId] = useState('');
-  const [filterItemId, setFilterItemId] = useState('');
-  const [filterType, setFilterType] = useState('');
-  const [filterUserId, setFilterUserId] = useState('');
-  const [filterDateRange, setFilterDateRange] = useState({ mode: 'today', start: today, end: today });
-  const [search, setSearch] = useState('');
-  const [sortBy, setSortBy] = useState('created_at');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const { company, fetchCompanyInfo } = useCompanyInfo();
-
-  // Units for selected item
+  // Use item unit hook for form
   const { units, loading: unitsLoading, fetchUnits } = useItemUnits(formData.item_id);
 
-  // Fetch all units on mount for table display
+  // For table/filter: fetch all units once
+  const [allUnits, setAllUnits] = useState([]);
   useEffect(() => {
     const fetchAllUnits = async () => {
       try {
@@ -86,33 +75,60 @@ function ItemDamageManagment({ isDrawerOpen }) {
     fetchAllUnits();
   }, []);
 
+  // Fetch all filtered transfers for report (no pagination)
+  const fetchAllTransfersForReport = async () => {
+    try {
+      const filters = {
+        from_warehouse_id: filterFromWarehouseId,
+        to_warehouse_id: filterToWarehouseId,
+        item_id: filterItemId,
+        employee_id: filterEmployeeId,
+        startDate: filterDateRange.start || today,
+        endDate: filterDateRange.end || today,
+        search,
+        sortBy,
+        sortOrder
+      };
+      const res = await axiosInstance.get('/item-transfer/filter', { params: { ...filters, page: 1, pageSize: 10000 } });
+      return res.data.data || [];
+    } catch (error) {
+      setErrorMessage('هەڵە ڕوویدا لە بارکردنی هەموو داتا');
+      return [];
+    }
+  };
+
+  // Filter states
+  const [filterFromWarehouseId, setFilterFromWarehouseId] = useState('');
+  const [filterToWarehouseId, setFilterToWarehouseId] = useState('');
+  const [filterItemId, setFilterItemId] = useState('');
+  const [filterEmployeeId, setFilterEmployeeId] = useState('');
+  const [filterDateRange, setFilterDateRange] = useState({ start: today, end: today });
+  const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const { company, fetchCompanyInfo } = useCompanyInfo();
+
   // Fetch initial data
   useEffect(() => {
     fetchWarehouses();
-    fetchUsers();
+    fetchEmployees();
     fetchItems();
   }, []);
 
-  // Fetch filtered damages on filter/sort/page change
   useEffect(() => {
-    fetchFilteredDamages();
+    fetchFilteredTransfers();
     // eslint-disable-next-line
   }, [
-    filterWarehouseId,
+    filterFromWarehouseId,
+    filterToWarehouseId,
     filterItemId,
-    filterType,
-    filterUserId,
+    filterEmployeeId,
     filterDateRange,
     search,
     currentPage,
     sortBy,
     sortOrder
   ]);
-
-  // Clear unit_id when item_id changes
-  useEffect(() => {
-    setFormData(prev => ({ ...prev, unit_id: '' }));
-  }, [formData.item_id]);
 
   // Fetchers
   const fetchWarehouses = async () => {
@@ -122,10 +138,10 @@ function ItemDamageManagment({ isDrawerOpen }) {
     } catch {}
   };
 
-  const fetchUsers = async () => {
+  const fetchEmployees = async () => {
     try {
       const res = await axiosInstance.get('/user/index');
-      setUsers(res.data || []);
+      setEmployees(res.data || []);
     } catch {}
   };
 
@@ -136,63 +152,33 @@ function ItemDamageManagment({ isDrawerOpen }) {
     } catch {}
   };
 
-  // Fetch all filtered damages for report (no pagination)
-  const fetchAllDamagesForReport = async () => {
-    try {
-      const filters = {
-        warehouse_id: filterWarehouseId,
-        item_id: filterItemId,
-        type: filterType,
-        user_id: filterUserId,
-        date_from: filterDateRange.start || today,
-        date_to: filterDateRange.end || today,
-        search,
-        sortBy,
-        sortOrder
-      };
-      const res = await axiosInstance.get('/item-damage/filter', { params: { ...filters, page: 1, pageSize: 10000 } });
-      return res.data.data || [];
-    } catch (error) {
-      setErrorMessage('هەڵە ڕوویدا لە بارکردنی هەموو داتا');
-      return [];
-    }
-  };
-
   // Main filter fetch
-  const fetchFilteredDamages = async () => {
+  const fetchFilteredTransfers = async () => {
     setFetching(true);
     try {
       const filters = {
-        warehouse_id: filterWarehouseId,
+        from_warehouse_id: filterFromWarehouseId,
+        to_warehouse_id: filterToWarehouseId,
         item_id: filterItemId,
-        type: filterType,
-        user_id: filterUserId,
-        date_from: filterDateRange.start || today,
-        date_to: filterDateRange.end || today,
-        search,
+        employee_id: filterEmployeeId,
+        startDate: filterDateRange.start || today,
+        endDate: filterDateRange.end || today,
+        search: search,
         page: currentPage,
         pageSize: rowsPerPage,
         sortBy,
         sortOrder
       };
-      const res = await axiosInstance.get('/item-damage/filter', { params: filters });
-      setDamages(res.data.data || []);
+      const res = await axiosInstance.get('/item-transfer/filter', { params: filters });
+      setTransfers(res.data.data || []);
       setTotalCount(res.data.total || 0);
     } catch (err) {
-      setDamages([]);
+      setTransfers([]);
       setTotalCount(0);
       setErrorMessage('هەڵە ڕوویدا لە بارکردنی داتا');
     } finally {
       setFetching(false);
     }
-  };
-
-  // PDF preview
-  const handleOpenPdfPreview = async () => {
-    await fetchCompanyInfo();
-    const allDamages = await fetchAllDamagesForReport();
-    setReportDamages(allDamages);
-    setOpenPdfPreview(true);
   };
 
   // Form handlers
@@ -202,12 +188,13 @@ function ItemDamageManagment({ isDrawerOpen }) {
     setErrorMessage('');
 
     const errors = {};
-    if (!formData.type) errors.type = 'جۆری زیان پێویستە';
-    if (!formData.warehouse_id) errors.warehouse_id = 'کۆگا پێویستە';
     if (!formData.item_id) errors.item_id = 'کاڵا پێویستە';
+    if (!formData.from_warehouse_id) errors.from_warehouse_id = 'کۆگا سەرچاوە پێویستە';
+    if (!formData.to_warehouse_id) errors.to_warehouse_id = 'کۆگا مەبەست پێویستە';
     if (!formData.unit_id) errors.unit_id = 'یەکە پێویستە';
     if (formData.quantity === '' || isNaN(Number(formData.quantity))) errors.quantity = 'بڕ پێویستە';
-    if (!formData.user_id) errors.user_id = 'بەکارهێنەر پێویستە';
+    if (!formData.employee_id) errors.employee_id = 'کارمەند پێویستە';
+    if (!formData.transfer_date) errors.transfer_date = 'بەروار پێویستە';
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -217,24 +204,25 @@ function ItemDamageManagment({ isDrawerOpen }) {
 
     try {
       const payload = {
-        type: formData.type,
-        warehouse_id: formData.warehouse_id,
         item_id: formData.item_id,
+        from_warehouse_id: formData.from_warehouse_id,
+        to_warehouse_id: formData.to_warehouse_id,
         unit_id: formData.unit_id,
-        quantity: formData.quantity,
-        user_id: formData.user_id,
-        reason: formData.reason,
-        date_at: formData.date_at || today,
+        quantity: Number(formData.quantity), // supports decimals
+        employee_id: formData.employee_id,
+        note: formData.note,
+        transfer_date: formData.transfer_date || today,
       };
       let response;
+
       if (selectedId) {
-        response = await axiosInstance.put(`/item-damage/update/${selectedId}`, payload);
+        response = await axiosInstance.put(`/item-transfer/update/${selectedId}`, payload);
       } else {
-        response = await axiosInstance.post('/item-damage/store', payload);
+        response = await axiosInstance.post('/item-transfer/store', payload);
       }
 
       if ([200, 201].includes(response.status)) {
-        fetchFilteredDamages();
+        fetchFilteredTransfers();
         setSuccess(true);
         setFormData(initialFormData);
         setSelectedId(null);
@@ -251,35 +239,33 @@ function ItemDamageManagment({ isDrawerOpen }) {
     }
   };
 
-  const handleClearForm = () => {
-    setFormData(initialFormData);
-    setFormErrors({});
-    setSelectedId(null);
-    setErrorMessage('');
-    setFilterWarehouseId('');
+  const handleClearFilters = () => {
+    setFilterFromWarehouseId('');
+    setFilterToWarehouseId('');
     setFilterItemId('');
-    setFilterType('');
-    setFilterUserId('');
-    setFilterDateRange({ mode: 'today', start: today, end: today });
+    setFilterEmployeeId('');
+    setFilterDateRange({ start: today, end: today });
     setSearch('');
     setCurrentPage(1);
+    setFormData(initialFormData); // Reset form fields
+    setFormErrors({});            // Reset form errors
+    setSelectedId(null);          // Reset edit mode
   };
 
-  // Edit handler: set form, fetch units, then set unit_id
   const handleEditClick = async (row) => {
     setSelectedId(row.id);
     setFormErrors({});
     setFormData({
-      type: row.type || '',
-      warehouse_id: row.warehouse_id || '',
       item_id: row.item_id || '',
+      from_warehouse_id: row.from_warehouse_id || '',
+      to_warehouse_id: row.to_warehouse_id || '',
       unit_id: '', // Clear first, will set after units loaded
       quantity: row.quantity || '',
-      user_id: row.user_id || '',
-      reason: row.reason || '',
-      date_at: row.date_at ? row.date_at.slice(0, 10) : today,
+      employee_id: row.employee_id || '',
+      note: row.note || '',
+      transfer_date: row.transfer_date ? row.transfer_date.slice(0, 10) : today,
+      search: '',
     });
-
     if (row.item_id) {
       await fetchUnits(row.item_id);
       setFormData(prev => ({
@@ -296,8 +282,8 @@ function ItemDamageManagment({ isDrawerOpen }) {
 
   const handleDeleteConfirm = async () => {
     try {
-      await axiosInstance.delete(`/item-damage/delete/${selectedId}`);
-      fetchFilteredDamages();
+      await axiosInstance.delete(`/item-transfer/delete/${selectedId}`);
+      fetchFilteredTransfers();
       setSuccess(true);
     } catch (err) {
       setErrorMessage('هەڵە ڕوویدا لە سڕینەوە');
@@ -305,6 +291,14 @@ function ItemDamageManagment({ isDrawerOpen }) {
       setOpenDialog(false);
       setSelectedId(null);
     }
+  };
+
+  // PDF preview handler
+  const handleOpenPdfPreview = async () => {
+    await fetchCompanyInfo();
+    const allTransfers = await fetchAllTransfersForReport();
+    setReportTransfers(allTransfers);
+    setOpenPdfPreview(true);
   };
 
   // Filter handlers
@@ -336,7 +330,6 @@ function ItemDamageManagment({ isDrawerOpen }) {
     const { name, value } = e.target;
     setErrorMessage('');
     setFormErrors(prev => ({ ...prev, [name]: '' }));
-
     setFormData(prev => ({
       ...prev,
       [name]: value,
@@ -350,7 +343,7 @@ function ItemDamageManagment({ isDrawerOpen }) {
   };
 
   // Total by unit for summary row
-  const totalByUnit = damages.reduce((acc, row) => {
+  const totalByUnit = transfers.reduce((acc, row) => {
     const unitName = allUnits.find(u => u.id === row.unit_id)?.name || 'نەناسراو';
     acc[unitName] = (acc[unitName] || 0) + Number(row.quantity || 0);
     return acc;
@@ -363,45 +356,11 @@ function ItemDamageManagment({ isDrawerOpen }) {
         <Grid item xs={12} md={4}>
           <Card sx={{ m: 1, p: 2 }}>
             <Typography variant="h6" gutterBottom>
-              {selectedId ? 'گۆڕینی (کاڵای خراپ بوو)' : 'زیادکردنی (کاڵای خراپ بوو)'}
+              {selectedId ? 'گۆڕینی گواستنەوە' : 'زیادکردنی گواستنەوە'}
             </Typography>
             <form onSubmit={handleSubmit}>
-              <TextField
-                select
-                fullWidth
-                label="جۆری خراپ بوون"
-                name="type"
-                value={formData.type}
-                onChange={handleChangeWithErrorReset}
-                error={!!formErrors.type}
-                helperText={formErrors.type}
-                sx={{ mb: 2 }}
-              >
-                <MenuItem value="وونبوون">وونبوون</MenuItem>
-                <MenuItem value="شکان">شکان</MenuItem>
-                <MenuItem value="بەسەرچوون">بەسەرچوون</MenuItem>
-                <MenuItem value="تەڕبوون">تەڕبوون</MenuItem>
-                <MenuItem value="سووتان">سووتان</MenuItem>
-                <MenuItem value="هتر">هتر</MenuItem>
-              </TextField>
-              <TextField
-                select
-                fullWidth
-                label="کۆگا"
-                name="warehouse_id"
-                value={formData.warehouse_id}
-                onChange={handleChangeWithErrorReset}
-                error={!!formErrors.warehouse_id}
-                helperText={formErrors.warehouse_id}
-                sx={{ mb: 2 }}
-              >
-                <MenuItem value="">هیچ</MenuItem>
-                {warehouses.map((w) => (
-                  <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
-                ))}
-              </TextField>
-              <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} sm={8}>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
                   <ItemAutocomplete
                     value={formData.item_id}
                     onChange={val => handleChangeWithErrorReset({ target: { name: 'item_id', value: val?.id || val } })}
@@ -409,7 +368,28 @@ function ItemDamageManagment({ isDrawerOpen }) {
                     helperText={formErrors.item_id}
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={8}>
+                  <TextField
+                    fullWidth
+                    label="بڕ"
+                    name="quantity"
+                    type="number"
+                    value={formData.quantity}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.quantity}
+                    helperText={formErrors.quantity}
+                    InputProps={{
+                      endAdornment: formData.quantity && (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => clearSelectField('quantity')}>
+                            <ClearIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={4}>
                   <TextField
                     select
                     fullWidth
@@ -430,77 +410,96 @@ function ItemDamageManagment({ isDrawerOpen }) {
                     ))}
                   </TextField>
                 </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="کۆگا سەرچاوە"
+                    name="from_warehouse_id"
+                    value={formData.from_warehouse_id}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.from_warehouse_id}
+                    helperText={formErrors.from_warehouse_id}
+                  >
+                    <MenuItem value="">هیچ</MenuItem>
+                    {warehouses.map((w) => (
+                      <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={6}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="کۆگا مەبەست"
+                    name="to_warehouse_id"
+                    value={formData.to_warehouse_id}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.to_warehouse_id}
+                    helperText={formErrors.to_warehouse_id}
+                  >
+                    <MenuItem value="">هیچ</MenuItem>
+                    {warehouses.map((w) => (
+                      <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="کارمەند"
+                    name="employee_id"
+                    value={formData.employee_id}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.employee_id}
+                    helperText={formErrors.employee_id}
+                  >
+                    <MenuItem value="">هیچ</MenuItem>
+                    {employees.map((emp) => (
+                      <MenuItem key={emp.id} value={emp.id}>{emp.name}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="تێبینی"
+                    name="note"
+                    value={formData.note}
+                    onChange={handleChangeWithErrorReset}
+                    InputProps={{
+                      endAdornment: formData.note && (
+                        <InputAdornment position="end">
+                          <IconButton onClick={() => clearSelectField('note')}>
+                            <ClearIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="بەروار"
+                    name="transfer_date"
+                    type="date"
+                    value={formData.transfer_date || today}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.transfer_date}
+                    helperText={formErrors.transfer_date}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ mb: 2 }}
+                  />
+                </Grid>
               </Grid>
-              <TextField
-                fullWidth
-                label="بڕ"
-                name="quantity"
-                type="number"
-                value={formData.quantity}
-                onChange={handleChangeWithErrorReset}
-                error={!!formErrors.quantity}
-                helperText={formErrors.quantity}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: formData.quantity && (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => clearSelectField('quantity')}>
-                        <ClearIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                select
-                fullWidth
-                label="کارمەند"
-                name="user_id"
-                value={formData.user_id}
-                onChange={handleChangeWithErrorReset}
-                error={!!formErrors.user_id}
-                helperText={formErrors.user_id}
-                sx={{ mb: 2 }}
-              >
-                <MenuItem value="">هیچ</MenuItem>
-                {users.map((u) => (
-                  <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                fullWidth
-                label="هۆکار"
-                name="reason"
-                value={formData.reason}
-                onChange={handleChangeWithErrorReset}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: formData.reason && (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => clearSelectField('reason')}>
-                        <ClearIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                fullWidth
-                label="بەروار"
-                name="date_at"
-                type="date"
-                value={formData.date_at || today}
-                onChange={handleChangeWithErrorReset}
-                sx={{ mb: 2 }}
-                InputLabelProps={{ shrink: true }}
-              />
-
               <Grid container spacing={2} sx={{ mb: 2 }}>
                 <Grid item xs={12} sm={8}>
                   <RegisterButton onClick={handleSubmit} loading={loading} />
                 </Grid>
                 <Grid item xs={12} sm={4}>
-                  <ClearButton onClick={handleClearForm} />
+                  <ClearButton onClick={handleClearFilters} />
                 </Grid>
               </Grid>
             </form>
@@ -517,9 +516,9 @@ function ItemDamageManagment({ isDrawerOpen }) {
                   <TextField
                     select
                     fullWidth
-                    label="کۆگا"
-                    value={filterWarehouseId}
-                    onChange={e => { setFilterWarehouseId(e.target.value); setCurrentPage(1); }}
+                    label="کۆگا سەرچاوە"
+                    value={filterFromWarehouseId}
+                    onChange={e => { setFilterFromWarehouseId(e.target.value); setCurrentPage(1); }}
                   >
                     <MenuItem value="">هەموو</MenuItem>
                     {warehouses.map(w => (
@@ -527,39 +526,38 @@ function ItemDamageManagment({ isDrawerOpen }) {
                     ))}
                   </TextField>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid item xs={12} md={3}>
+                  <TextField
+                    select
+                    fullWidth
+                    label="کۆگا مەبەست"
+                    value={filterToWarehouseId}
+                    onChange={e => { setFilterToWarehouseId(e.target.value); setCurrentPage(1); }}
+                  >
+                    <MenuItem value="">هەموو</MenuItem>
+                    {warehouses.map(w => (
+                      <MenuItem key={w.id} value={w.id}>{w.name}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={3}>
                   <ItemAutocomplete
                     value={filterItemId}
                     onChange={val => { setFilterItemId(val); setCurrentPage(1); }}
                   />
                 </Grid>
-                <Grid item xs={12} md={2}>
-                  <TextField
-                    select
-                    fullWidth
-                    label="جۆر"
-                    value={filterType}
-                    onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
-                  >
-                    <MenuItem value="وونبوون">وونبوون</MenuItem>
-                    <MenuItem value="شکان">شکان</MenuItem>
-                    <MenuItem value="بەسەرچوون">بەسەرچوون</MenuItem>
-                    <MenuItem value="تەڕبوون">تەڕبوون</MenuItem>
-                    <MenuItem value="سووتان">سووتان</MenuItem>
-                    <MenuItem value="هتر">هتر</MenuItem>
-                  </TextField>
-                </Grid>
+                {/* Removed unit filter field */}
                 <Grid item xs={12} md={3}>
                   <TextField
                     select
                     fullWidth
                     label="کارمەند"
-                    value={filterUserId}
-                    onChange={e => { setFilterUserId(e.target.value); setCurrentPage(1); }}
+                    value={filterEmployeeId}
+                    onChange={e => { setFilterEmployeeId(e.target.value); setCurrentPage(1); }}
                   >
                     <MenuItem value="">هەموو</MenuItem>
-                    {users.map(u => (
-                      <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
+                    {employees.map(emp => (
+                      <MenuItem key={emp.id} value={emp.id}>{emp.name}</MenuItem>
                     ))}
                   </TextField>
                 </Grid>
@@ -576,7 +574,7 @@ function ItemDamageManagment({ isDrawerOpen }) {
                       name="search"
                       value={search}
                       onChange={handleSearchChange}
-                      placeholder="ناو یان هۆکار..."
+                      placeholder="ناو یان تێبینی..."
                       InputProps={{
                         endAdornment: (
                           <InputAdornment position="end">
@@ -590,13 +588,18 @@ function ItemDamageManagment({ isDrawerOpen }) {
                       }}
                     />
                   </Grid>
-                  <Grid item xs={12} md={2} sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-end' } }}>
-                    <ReportButton onClick={handleOpenPdfPreview} fullWidth={window.innerWidth < 900} />
-                  </Grid>
+                  <Grid item xs={12} md={2} sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                      <Box sx={{ width: '100%' }}>
+                        <ReportButton
+                          onClick={handleOpenPdfPreview}
+                          fullWidth={true}
+                          sx={{ width: '100%' }}
+                        />
+                      </Box>
+                    </Grid>
                 </Grid>
               </Box>
             </Box>
-
             {/* Table */}
             <TableContainer component={Paper}>
               <Table>
@@ -613,15 +616,6 @@ function ItemDamageManagment({ isDrawerOpen }) {
                     </TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={sortBy === 'warehouse_id'}
-                        direction={sortBy === 'warehouse_id' ? sortOrder : 'asc'}
-                        onClick={() => handleSort('warehouse_id')}
-                      >
-                        کۆگا
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>
-                      <TableSortLabel
                         active={sortBy === 'item_id'}
                         direction={sortBy === 'item_id' ? sortOrder : 'asc'}
                         onClick={() => handleSort('item_id')}
@@ -629,6 +623,8 @@ function ItemDamageManagment({ isDrawerOpen }) {
                         کاڵا
                       </TableSortLabel>
                     </TableCell>
+                    <TableCell>کۆگا سەرچاوە</TableCell>
+                    <TableCell>کۆگا مەبەست</TableCell>
                     <TableCell>یەکە</TableCell>
                     <TableCell>
                       <TableSortLabel
@@ -639,18 +635,17 @@ function ItemDamageManagment({ isDrawerOpen }) {
                         بڕ
                       </TableSortLabel>
                     </TableCell>
+                    <TableCell>کارمەند</TableCell>
+                    <TableCell>تێبینی</TableCell>
                     <TableCell>
                       <TableSortLabel
-                        active={sortBy === 'type'}
-                        direction={sortBy === 'type' ? sortOrder : 'asc'}
-                        onClick={() => handleSort('type')}
+                        active={sortBy === 'transfer_date'}
+                        direction={sortBy === 'transfer_date' ? sortOrder : 'asc'}
+                        onClick={() => handleSort('transfer_date')}
                       >
-                        جۆر
+                        بەروار
                       </TableSortLabel>
                     </TableCell>
-                    <TableCell>بەکارهێنەر</TableCell>
-                    <TableCell>هۆکار</TableCell>
-                    <TableCell>بەروار</TableCell>
                     <TableCell>ئیش</TableCell>
                   </TableRow>
                 </TableHead>
@@ -661,18 +656,18 @@ function ItemDamageManagment({ isDrawerOpen }) {
                         <CircularProgress />
                       </TableCell>
                     </TableRow>
-                  ) : damages.length > 0 ? (
-                    damages.map((row) => (
+                  ) : transfers.length > 0 ? (
+                    transfers.map((row) => (
                       <TableRow key={row.id}>
                         <TableCell>{row.id}</TableCell>
-                        <TableCell>{warehouses.find(w => w.id === row.warehouse_id)?.name || row.warehouse_id}</TableCell>
                         <TableCell>{items.find(i => i.id === row.item_id)?.name || row.item_id}</TableCell>
+                        <TableCell>{warehouses.find(w => w.id === row.from_warehouse_id)?.name || row.from_warehouse_id}</TableCell>
+                        <TableCell>{warehouses.find(w => w.id === row.to_warehouse_id)?.name || row.to_warehouse_id}</TableCell>
                         <TableCell>{allUnits.find(u => u.id === row.unit_id)?.name || 'نەناسراو'}</TableCell>
                         <TableCell>{row.quantity}</TableCell>
-                        <TableCell>{row.type}</TableCell>
-                        <TableCell>{users.find(u => u.id === row.user_id)?.name || row.user_id}</TableCell>
-                        <TableCell>{row.reason}</TableCell>
-                        <TableCell>{row.date_at ? row.date_at.slice(0, 10) : ''}</TableCell>
+                        <TableCell>{employees.find(emp => emp.id === row.employee_id)?.name || row.employee_id}</TableCell>
+                        <TableCell>{row.note}</TableCell>
+                        <TableCell>{row.transfer_date ? row.transfer_date.slice(0, 10) : ''}</TableCell>
                         <TableCell>
                           <IconButton color="primary" onClick={() => handleEditClick(row)}>
                             <EditIcon />
@@ -686,7 +681,7 @@ function ItemDamageManagment({ isDrawerOpen }) {
                   ) : (
                     <TableRow>
                       <TableCell colSpan={10} align="center">
-                        هیچ زیانێک نەدۆزرایەوە
+                        هیچ گواستنەوەیەک نەدۆزرایەوە
                       </TableCell>
                     </TableRow>
                   )}
@@ -731,8 +726,8 @@ function ItemDamageManagment({ isDrawerOpen }) {
         open={openDialog}
         onClose={handleDialogClose}
         onConfirm={handleDeleteConfirm}
-        title="سڕینەوەی کاڵای خراپ بوو"
-        description="ئایە دڵنیایت لە سڕینەوەی ئەم کاڵا خراپ بووە ئەم کردارە گەرێنەوە نییە."
+        title="سڕینەوەی گواستنەوە"
+        description="ئایە دڵنیایت لە سڕینەوەی ئەم گواستنەوە؟ ئەم کردارە گەرێنەوە نییە."
         confirmText="سڕینەوە"
         cancelText="پاشگەزبوونەوە"
       />
@@ -742,24 +737,24 @@ function ItemDamageManagment({ isDrawerOpen }) {
         open={openPdfPreview}
         onClose={() => setOpenPdfPreview(false)}
         document={
-          <ItemDamagePDF
-            damages={reportDamages}
+          <ItemTransferPDF
+            transfers={reportTransfers}
             warehouses={warehouses}
             items={items}
-            units={units}
-            users={users}
+            units={allUnits}
+            users={employees}
             company={company}
             filters={{
-              warehouse: filterWarehouseId,
-              item: filterItemId,
-              type: filterType,
-              user: filterUserId,
+              from_warehouse_id: filterFromWarehouseId,
+              to_warehouse_id: filterToWarehouseId,
+              item_id: filterItemId,
+              employee_id: filterEmployeeId,
               dateRange: filterDateRange,
               search,
             }}
           />
         }
-        fileName="item_damage_report.pdf"
+        fileName="item_transfer_report.pdf"
       />
 
       {/* Snackbars */}
@@ -773,4 +768,4 @@ function ItemDamageManagment({ isDrawerOpen }) {
   );
 }
 
-export default ItemDamageManagment;
+export default ItemTransferManagment;

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { TextField, Button, Box, Typography, Container, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { BASE_URL } from '../../config/constants';
 
 const LoginForm = () => {
   const [error, setError] = useState('');
@@ -20,7 +21,7 @@ const LoginForm = () => {
     
     setLoading(true);
     setError('');
-    const apiUrl = 'http://localhost:3000/api/user/login'; // ✅ fixed double slash
+    const apiUrl = `${BASE_URL}/api/user/login`;
 
     try {
       const response = await axios.post(apiUrl, { username, password });

@@ -14,15 +14,16 @@ import {
   Category,
   AccountBalanceWallet,
 } from '@mui/icons-material';
-import { Link, useNavigate } from 'react-router-dom';
-
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 const Sidebar = () => {
+    const location = useLocation();
   const [open, setOpen] = useState(false);
   const [nestedOpen, setNestedOpen] = useState(false);
   const [nestedCompanyOpen, setCompanyNestedOpen] = useState(false);
   const [nestedEmployeeOpen, setEmployeeNestedOpen] = useState(false);
   const [nestedItemOpen, setItemNestedOpen] = useState(false);
   const [nestedExpensesOpen, setExpensesNestedOpen] = useState(false);
+  const [nestedWarehouseOpen, setWarehouseNestedOpen] = useState(false);
 
   const toggleDrawer = () => setOpen(!open);
   const handleNestedToggle = () => setNestedOpen(!nestedOpen);
@@ -30,6 +31,10 @@ const Sidebar = () => {
   const handleEmployeeNestedToggle = () => setEmployeeNestedOpen(!nestedEmployeeOpen);
   const handleExpensesNestedToggle = () => setExpensesNestedOpen(!nestedExpensesOpen);
   const handleItemNestedToggle = () => setItemNestedOpen(!nestedItemOpen);
+  const handleWarehouseNestedToggle = () => setWarehouseNestedOpen(!nestedWarehouseOpen);
+
+  const hideToggle = location.pathname === '/' || location.pathname === '/login';
+
 
   const getTextStyles = () => ({
     color: 'white',
@@ -45,25 +50,26 @@ const Sidebar = () => {
   };
 
   return (
-    <>
-      <IconButton
-        onClick={toggleDrawer}
-        sx={{
-          position: 'fixed',
-          top: 12,
-          left: 12,
-          zIndex: 1200,
-          backgroundColor: 'white',
-          '&:hover': { backgroundColor: '#e0e0e0' },
-          color: '#000',
-          borderRadius: '50%',
-          boxShadow: 2,
-        }}
-        aria-label="Toggle menu"
-      >
-        <Menu />
-      </IconButton>
-
+      <>
+      {!hideToggle && (
+        <IconButton
+          onClick={toggleDrawer}
+          sx={{
+            position: 'fixed',
+            top: 12,
+            left: 12,
+            zIndex: 1200,
+            backgroundColor: 'white',
+            '&:hover': { backgroundColor: '#e0e0e0' },
+            color: '#000',
+            borderRadius: '50%',
+            boxShadow: 2,
+          }}
+          aria-label="Toggle menu"
+        >
+          <Menu />
+        </IconButton>
+      )}
       <Drawer
         anchor="left"
         open={open}
@@ -147,12 +153,11 @@ const Sidebar = () => {
                 <ListItem button component={Link} to="/item/price/type">
                   <ListItemText inset primary="جۆری نرخەکان" sx={getTextStyles()} />
                 </ListItem>
-                <ListItem button component={Link} to="/item/transaction">
-                  <ListItemText inset primary="ڕێکخستنەوەی کۆگا" sx={getTextStyles()} />
+
+                <ListItem button component={Link} to="/serial">
+                  <ListItemText inset primary="بەشی سریاڵ" sx={getTextStyles()} />
                 </ListItem>
-                 <ListItem button component={Link} to="/item/damage">
-                  <ListItemText inset primary="کاڵای خراپ بوو" sx={getTextStyles()} />
-                </ListItem>
+                
               </List>
               <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>
@@ -202,6 +207,41 @@ const Sidebar = () => {
             </Collapse>
 
 
+        {/* Warehouse Section */}
+
+           <ListItem button onClick={handleWarehouseNestedToggle} aria-expanded={nestedWarehouseOpen}>
+              <ListItemIcon sx={{ color: 'white' }}>
+                <Settings />
+              </ListItemIcon>
+              <ListItemText primary="کۆگا" sx={getTextStyles()} />
+              {nestedWarehouseOpen ? <ExpandLess sx={{ color: 'white' }} /> : <ExpandMore sx={{ color: 'white' }} />}
+            </ListItem>
+             <Collapse in={nestedWarehouseOpen} timeout="auto" unmountOnExit>
+
+              <ListItem button component={Link} to="/warehouse">
+                  <ListItemText inset primary="زیادکردن" sx={getTextStyles()} />
+                </ListItem>
+
+                 <ListItem button component={Link} to="/item/transaction">
+                  <ListItemText inset primary="ڕێکخستن" sx={getTextStyles()} />
+                </ListItem>
+
+              <ListItem button component={Link} to="/item/transfer">
+                  <ListItemText inset primary="گواستنەوە" sx={getTextStyles()} />
+                </ListItem>
+
+                 <ListItem button component={Link} to="/item/damage">
+                  <ListItemText inset primary="خەسارچوو" sx={getTextStyles()} />
+                </ListItem>
+
+                 <ListItem button component={Link} to="/item/quantity">
+                  <ListItemText inset primary="زانیاری کۆگا" sx={getTextStyles()} />
+                </ListItem>
+
+
+             <Divider sx={{ backgroundColor: 'white' }} />
+           </Collapse>
+
             {/* Company Section */}
 
           <ListItem button onClick={handleCompanyNestedToggle} aria-expanded={nestedCompanyOpen}>
@@ -228,9 +268,7 @@ const Sidebar = () => {
                 <ListItem button component={Link} to="/branch/">
                   <ListItemText inset primary="لقەکان" sx={getTextStyles()} />
                 </ListItem>
-                <ListItem button component={Link} to="/warehouse">
-                  <ListItemText inset primary="کۆگاکان" sx={getTextStyles()} />
-                </ListItem>
+               
                 <ListItem button component={Link} to="/currency">
                   <ListItemText inset primary="دراوەکان" sx={getTextStyles()} />
                 </ListItem>

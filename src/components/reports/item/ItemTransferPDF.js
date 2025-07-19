@@ -3,13 +3,13 @@ import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/rendere
 import Rudaw from '../../../assets/fonts/rudawregular2.ttf';
 import PdfReportHeader from '../../common/PdfReportHeader';
 
-// 1. Font registration
+// Font registration
 Font.register({
   family: 'Rudaw',
   fonts: [{ src: Rudaw, fontWeight: 'normal' }],
 });
 
-// 2. Styles
+// Styles (copied and adapted from ItemDamagePDF)
 const styles = StyleSheet.create({
   page: {
     padding: 24,
@@ -133,56 +133,75 @@ const styles = StyleSheet.create({
   },
   // Column widths
   col1: { flex: 0.5 },
-  col2: { flex: 1.5 },
-  col3: { flex: 1.5 },
-  col4: { flex: 1.5 },
-  col5: { flex: 2 },
-  col6: { flex: 1.5 },
-  col7: { flex: 1.5 },
+  col2: { flex: 1.2 },
+  col3: { flex: 1.2 },
+  col4: { flex: 1.2 },
+  col5: { flex: 1.2 },
+  col6: { flex: 1.2 },
+  col7: { flex: 1.2 },
   col8: { flex: 2 },
 });
 
-// 3. Utility
+// Utility
 function formatNumberWithCommas(value) {
   if (value === null || value === undefined) return '';
   return Number(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// 4. Main component
-const ItemInfoPDF = ({
+// Main component
+const ItemTransferPDF = ({
+  transfers = [],
+  warehouses = [],
   items = [],
-  categories = [],
-  brands = [],
+  units = [],
+  users = [],
   company = {},
   filters = {},
 }) => {
   // Prepare filter display
   const filterTexts = [];
-  if (filters.category_id) {
-    const cat = categories.find(c => c.id === filters.category_id);
-    filterTexts.push(`گرووپ: ${cat ? cat.name : filters.category_id}`);
+  if (filters.from_warehouse_id) {
+    const warehouse = warehouses.find(w => w.id === filters.from_warehouse_id);
+    filterTexts.push(`کۆگا سەرچاوە: ${warehouse ? warehouse.name : filters.from_warehouse_id}`);
   }
-  if (filters.brand_id) {
-    const brand = brands.find(b => b.id === filters.brand_id);
-    filterTexts.push(`براند: ${brand ? brand.name : filters.brand_id}`);
+  if (filters.to_warehouse_id) {
+    const warehouse = warehouses.find(w => w.id === filters.to_warehouse_id);
+    filterTexts.push(`کۆگا مەبەست: ${warehouse ? warehouse.name : filters.to_warehouse_id}`);
   }
-  if (filters.barcode) {
-    filterTexts.push(`بارکۆد: ${filters.barcode}`);
+  if (filters.item_id) {
+    const item = items.find(i => i.id === filters.item_id);
+    filterTexts.push(`کاڵا: ${item ? item.name : filters.item_id}`);
   }
-  if (filters.name) {
-    filterTexts.push(`ناو: ${filters.name}`);
+  if (filters.employee_id) {
+    const user = users.find(u => u.id === filters.employee_id);
+    filterTexts.push(`کارمەند: ${user ? user.name : filters.employee_id}`);
+  }
+  if (filters.dateRange?.start || filters.dateRange?.end) {
+    filterTexts.push(
+      `لە: ${filters.dateRange.start || '-'} بۆ: ${filters.dateRange.end || '-'}`
+    );
+  }
+  if (filters.search) {
+    filterTexts.push(`گەڕان: ${filters.search}`);
   }
 
   // Export/print date
   const exportDate = new Date().toLocaleString('ckb-IQ');
 
+  // Total by unit
+  const totalByUnit = transfers.reduce((acc, row) => {
+    const unitName = units.find(u => u.id === row.unit_id)?.name || row.unit_id || 'ناناسراو';
+    acc[unitName] = (acc[unitName] || 0) + Number(row.quantity || 0);
+    return acc;
+  }, {});
+
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Reusable PDF Header */}
+        {/* PDF Header */}
         <PdfReportHeader
           company={company}
-          title="ڕاپۆرتی کاڵاکان"
+          title="ڕاپۆرتی گواستنەوەی کاڵا"
           filters={filterTexts}
           exportDate={exportDate}
           styles={styles}
@@ -193,36 +212,46 @@ const ItemInfoPDF = ({
           {/* Header row */}
           <View style={[styles.row, styles.header]}>
             <Text style={[styles.cell, styles.col1]}>#</Text>
-            <Text style={[styles.cell, styles.col2]}>گرووپ</Text>
-            <Text style={[styles.cell, styles.col3]}>براند</Text>
-            <Text style={[styles.cell, styles.col4]}>بارکۆد</Text>
-            <Text style={[styles.cell, styles.col5]}>ناو</Text>
-            <Text style={[styles.cell, styles.col6]}>نرخ</Text>
-            <Text style={[styles.cell, styles.col7]}>جۆر</Text>
-            <Text style={[styles.cell, styles.col8]}>وەسف</Text>
+            <Text style={[styles.cell, styles.col3]}>کۆگا سەرچاوە</Text>
+            <Text style={[styles.cell, styles.col4]}>کۆگا مەبەست</Text>
+            <Text style={[styles.cell, styles.col5]}>کاڵا</Text>
+            <Text style={[styles.cell, styles.col6]}>یەکە</Text>
+            <Text style={[styles.cell, styles.col7]}>بڕ</Text>
+            <Text style={[styles.cell, styles.col2]}>کارمەند</Text>
+            <Text style={[styles.cell, styles.col8]}>تێبینی</Text>
+            <Text style={[styles.cell, styles.col2]}>بەروار</Text>
           </View>
 
           {/* Data rows */}
-          {items.map((item, idx) => (
-            <View style={styles.row} key={item.id}>
+          {transfers.map((row, idx) => (
+            <View style={styles.row} key={row.id}>
               <Text style={[styles.cell, styles.col1]}>{idx + 1}</Text>
-              <Text style={[styles.cell, styles.col2]}>{categories.find(c => c.id === item.category_id)?.name || ''}</Text>
-              <Text style={[styles.cell, styles.col3]}>{brands.find(b => b.id === item.brand_id)?.name || ''}</Text>
-              <Text style={[styles.cell, styles.col4]}>{item.barcode}</Text>
-              <Text style={[styles.cell, styles.col5]}>{item.name}</Text>
-              <Text style={[styles.cell, styles.col6]}>{formatNumberWithCommas(item.cost)}</Text>
-              <Text style={[styles.cell, styles.col7]}>{item.isService ? "خزمەتگوزاری" : "کاڵا"}</Text>
-              <Text style={[styles.cell, styles.col8]}>{item.description}</Text>
+              <Text style={[styles.cell, styles.col3]}>{warehouses.find(w => w.id === row.from_warehouse_id)?.name || ''}</Text>
+              <Text style={[styles.cell, styles.col4]}>{warehouses.find(w => w.id === row.to_warehouse_id)?.name || ''}</Text>
+              <Text style={[styles.cell, styles.col5]}>{items.find(i => i.id === row.item_id)?.name || ''}</Text>
+              <Text style={[styles.cell, styles.col6]}>{units.find(u => u.id === row.unit_id)?.name || ''}</Text>
+              <Text style={[styles.cell, styles.col7]}>{formatNumberWithCommas(row.quantity)}</Text>
+              <Text style={[styles.cell, styles.col2]}>{users.find(u => u.id === row.employee_id)?.name || ''}</Text>
+              <Text style={[styles.cell, styles.col8]}>{row.note || ''}</Text>
+              <Text style={[styles.cell, styles.col2]}>{row.transfer_date ? row.transfer_date.slice(0, 10) : ''}</Text>
             </View>
           ))}
 
           {/* Sum row */}
           <View style={styles.sumRow}>
-            <Text style={styles.sumTitle}>ژمارەی گشتی</Text>
-            <Text style={styles.sumText}>{items.length}</Text>
+            <Text style={styles.sumTitle}>کۆی گشتی :</Text>
+            <Text style={styles.sumText}>
+              {Object.entries(totalByUnit).length === 0
+                ? '-'
+                : Object.entries(totalByUnit).map(([unit, sum], idx, arr) => (
+                    <Text key={unit} style={{ color: '#d32f2f', marginLeft: 8 }}>
+                      {unit}: {formatNumberWithCommas(sum)}
+                      {idx < arr.length - 1 && <Text style={{ color: '#888' }}> | </Text>}
+                    </Text>
+                  ))}
+            </Text>
           </View>
         </View>
-
 
         {/* Footer */}
         {(company?.address || company?.supplier_name) && (
@@ -249,5 +278,4 @@ const ItemInfoPDF = ({
   );
 };
 
-
-export default ItemInfoPDF;
+export default ItemTransferPDF;

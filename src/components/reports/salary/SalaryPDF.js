@@ -1,7 +1,7 @@
 import React from 'react';
 import { Document, Page, Text, View, StyleSheet, Font } from '@react-pdf/renderer';
 import Rudaw from '../../../assets/fonts/rudawregular2.ttf';
-import PdfReportHeader from '../common/PdfReportHeader';
+import PdfReportHeader from '../../common/PdfReportHeader';
 
 // Register Kurdish font
 Font.register({

@@ -33,7 +33,7 @@ import {
 } from '@mui/icons-material';
 import axiosInstance from '../../components/service/axiosInstance';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
-import ReportButton from '../../components/reports/common/ReportButton';
+import ReportButton from '../../components/common/ReportButton';
 import DialogPdf from '../../components/utils/DialogPdf';
 import BranchInfoPDF from '../../components/reports/branch/branchInfoPDF'; // Make sure this exists and is implemented like RegionInfoPDF
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';

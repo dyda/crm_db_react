@@ -5,8 +5,8 @@ import {
   TableCell, TableBody, TableContainer, Paper, Pagination, TableFooter
 } from '@mui/material';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
-import RegisterButton from '../../components/reports/common/RegisterButton';
-import ClearButton from '../../components/reports/common/ClearButton';
+import RegisterButton from '../../components/common/RegisterButton';
+import ClearButton from '../../components/common/ClearButton';
 
 import {
   Clear as ClearIcon,

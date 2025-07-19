@@ -27,8 +27,8 @@ import {
 } from '@mui/icons-material';
 import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
-import RegisterButton from '../../components/reports/common/RegisterButton';
-import ClearButton from '../../components/reports/common/ClearButton';
+import RegisterButton from '../../components/common/RegisterButton';
+import ClearButton from '../../components/common/ClearButton';
 
 function CityManagement({ isDrawerOpen }) {
   const initialFormData = { name: '', description: '' };

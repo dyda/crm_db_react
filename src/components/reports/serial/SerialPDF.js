@@ -3,13 +3,13 @@ import { Page, Text, View, Document, StyleSheet, Font } from '@react-pdf/rendere
 import Rudaw from '../../../assets/fonts/rudawregular2.ttf';
 import PdfReportHeader from '../../common/PdfReportHeader';
 
-// 1. Font registration
+// Font registration
 Font.register({
   family: 'Rudaw',
   fonts: [{ src: Rudaw, fontWeight: 'normal' }],
 });
 
-// 2. Styles
+// Styles
 const styles = StyleSheet.create({
   page: {
     padding: 24,
@@ -133,28 +133,36 @@ const styles = StyleSheet.create({
   },
   // Column widths
   col1: { flex: 0.5 },
-  col2: { flex: 2 },
-  col3: { flex: 2 },
+  col2: { flex: 1.2 },
+  col3: { flex: 1.2 },
   col4: { flex: 2 },
-  col5: { flex: 2 },
-  col6: { flex: 3 },
+  col5: { flex: 1.2 },
+  col6: { flex: 1.2 },
 });
 
-// 3. Main component
-const ZoneInfoPDF = ({
-  zones = [],
-  cities = [],
-  company,
+// Utility
+function formatDate(dateString) {
+  if (!dateString) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateString)) return dateString;
+  if (dateString.includes('T')) return dateString.split('T')[0];
+  return '';
+}
+
+// Main component
+const SerialPDF = ({
+  serials = [],
+  company = {},
   filters = {},
+  totalByType = {},
 }) => {
   // Prepare filter display
   const filterTexts = [];
-  if (filters.zone_name) {
-    filterTexts.push(`ناوی زۆن: ${filters.zone_name}`);
-  }
-  if (filters.city_id) {
-    const city = cities.find(c => c.id === filters.city_id);
-    filterTexts.push(`شار: ${city ? city.name : filters.city_id}`);
+  if (filters.type) filterTexts.push(`جۆر: ${filters.type}`);
+  if (filters.name) filterTexts.push(`سریاڵ: ${filters.name}`);
+  if (filters.dateRange?.start || filters.dateRange?.end) {
+    filterTexts.push(
+      `لە: ${filters.dateRange.start || '-'} بۆ: ${filters.dateRange.end || '-'}`
+    );
   }
 
   // Export/print date
@@ -166,7 +174,7 @@ const ZoneInfoPDF = ({
         {/* PDF Header */}
         <PdfReportHeader
           company={company}
-          title="ڕاپۆرتی زۆنەکان"
+          title="ڕاپۆرتی سیریال"
           filters={filterTexts}
           exportDate={exportDate}
           styles={styles}
@@ -177,37 +185,40 @@ const ZoneInfoPDF = ({
           {/* Header row */}
           <View style={[styles.row, styles.header]}>
             <Text style={[styles.cell, styles.col1]}>#</Text>
-            <Text style={[styles.cell, styles.col2]}>ناوی زۆن</Text>
-            <Text style={[styles.cell, styles.col3]}>شار</Text>
-            <Text style={[styles.cell, styles.col4]}>ئامانجی فرۆشتن</Text>
-            <Text style={[styles.cell, styles.col5]}>وەسف</Text>
-            <Text style={[styles.cell, styles.col6]}>بەرواری دروستکردن</Text>
+            <Text style={[styles.cell, styles.col2]}>جۆر</Text>
+            <Text style={[styles.cell, styles.col3]}>سریاڵ</Text>
+            <Text style={[styles.cell, styles.col4]}>تێبینی</Text>
+            <Text style={[styles.cell, styles.col5]}>بەروار</Text>
+            <Text style={[styles.cell, styles.col6]}>دروستکراو</Text>
           </View>
 
           {/* Data rows */}
-          {zones.map(zone => (
-            <View style={styles.row} key={zone.id}>
-              <Text style={[styles.cell, styles.col1]}>{zone.id}</Text>
-              <Text style={[styles.cell, styles.col2]}>{zone.name}</Text>
-              <Text style={[styles.cell, styles.col3]}>
-                {cities.find(c => c.id === zone.city_id)?.name || zone.city_id}
-              </Text>
-              <Text style={[styles.cell, styles.col4]}>{zone.sales_target}</Text>
-              <Text style={[styles.cell, styles.col5]}>{zone.description}</Text>
-              <Text style={[styles.cell, styles.col6]}>
-                {zone.created_at ? new Date(zone.created_at).toLocaleDateString('ckb-IQ') : ''}
-              </Text>
+          {serials.map((row, idx) => (
+            <View style={styles.row} key={row.id}>
+              <Text style={[styles.cell, styles.col1]}>{idx + 1}</Text>
+              <Text style={[styles.cell, styles.col2]}>{row.type}</Text>
+              <Text style={[styles.cell, styles.col3]}>{row.name}</Text>
+              <Text style={[styles.cell, styles.col4]}>{row.note}</Text>
+              <Text style={[styles.cell, styles.col5]}>{formatDate(row.date_at)}</Text>
+              <Text style={[styles.cell, styles.col6]}>{formatDate(row.created_at)}</Text>
             </View>
           ))}
 
           {/* Sum row */}
           <View style={styles.sumRow}>
-            <Text style={styles.sumTitle}>ژمارەی گشتی</Text>
-            <Text style={styles.sumText}>{zones.length}</Text>
+            <Text style={styles.sumTitle}>کۆی گشتی :</Text>
+            <Text style={styles.sumText}>
+              {Object.entries(totalByType).length === 0
+                ? '-'
+                : Object.entries(totalByType).map(([type, sum], idx, arr) => (
+                    <Text key={type} style={{ color: '#1976d2', marginLeft: 8 }}>
+                      {type}: {sum}
+                      {idx < arr.length - 1 && <Text style={{ color: '#888' }}> | </Text>}
+                    </Text>
+                  ))}
+            </Text>
           </View>
         </View>
-
-  
 
         {/* Footer */}
         {(company?.address || company?.supplier_name) && (
@@ -234,4 +245,4 @@ const ZoneInfoPDF = ({
   );
 };
 
-export default ZoneInfoPDF;
+export default SerialPDF;

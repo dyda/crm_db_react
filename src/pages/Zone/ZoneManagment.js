@@ -30,9 +30,9 @@ import {
 } from '@mui/icons-material';
 import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
-import RegisterButton from '../../components/reports/common/RegisterButton';
-import ClearButton from '../../components/reports/common/ClearButton';
-import ReportButton from '../../components/reports/common/ReportButton';
+import RegisterButton from '../../components/common/RegisterButton';
+import ClearButton from '../../components/common/ClearButton';
+import ReportButton from '../../components/common/ReportButton';
 import DialogPdf from '../../components/utils/DialogPdf';
 import ZoneInfoPDF from '../../components/reports/zone/ZoneInfoPDF';
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';

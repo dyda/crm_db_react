@@ -17,10 +17,12 @@ import ItemAutocomplete from '../../components/Item/ItemAutocomplete';
 import DateRangeSelector from '../../components/utils/DateRangeSelector';
 import ItemTransactionPDF from '../../components/reports/item/ItemTransactionPDF';
 import DialogPdf from '../../components/utils/DialogPdf';
-import ClearButton from '../../components/reports/common/ClearButton';
-import ReportButton from '../../components/reports/common/ReportButton';
-import RegisterButton from '../../components/reports/common/RegisterButton';
+import RegisterButton from '../../components/common/RegisterButton';
+import ClearButton from '../../components/common/ClearButton';
+import ReportButton from '../../components/common/ReportButton';
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';
+import { useItemUnits } from '../../hooks/useItemUnits';
+
 
 function ItemTransactionManagment({ isDrawerOpen }) {
   const initialFormData = {
@@ -61,7 +63,7 @@ const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60000)
   const [fetching, setFetching] = useState(false);
   const [openPdfPreview, setOpenPdfPreview] = useState(false);
   const [reportTransactions, setReportTransactions] = useState([]);
-
+  const { units: itemUnits, loading: unitsLoading } = useItemUnits(formData.item_id);
   // Filter states
   const [filterWarehouseId, setFilterWarehouseId] = useState('');
   const [filterItemId, setFilterItemId] = useState('');
@@ -389,7 +391,7 @@ const sumByUnitAndType = transactions.reduce((acc, row) => {
                 ))}
               </TextField>
               <Grid container spacing={2} sx={{ mb: 2 }}>
-                <Grid item xs={12} sm={9}>
+                <Grid item xs={12} sm={8}>
                   <ItemAutocomplete
                     value={formData.item_id}
                     onChange={val => handleChangeWithErrorReset({ target: { name: 'item_id', value: val } })}
@@ -397,22 +399,26 @@ const sumByUnitAndType = transactions.reduce((acc, row) => {
                     helperText={formErrors.item_id}
                   />
                 </Grid>
-                <Grid item xs={12} sm={3}>
+                <Grid item xs={12} sm={4}>
                   <TextField
-                    select
-                    fullWidth
-                    label="یەکە"
-                    name="unit_id"
-                    value={formData.unit_id}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.unit_id}
-                    helperText={formErrors.unit_id}
-                  >
-                    <MenuItem value="">هیچ</MenuItem>
-                    {units.map((u) => (
-                      <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
-                    ))}
-                  </TextField>
+                        select
+                        fullWidth
+                        label="یەکە"
+                        name="unit_id"
+                        value={formData.unit_id}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.unit_id}
+                        helperText={formErrors.unit_id}
+                        disabled={unitsLoading || itemUnits.length === 0}
+                      >
+                        <MenuItem value="">هیچ</MenuItem>
+                        {itemUnits.length === 0 && (
+                          <MenuItem disabled value="">هیچ یەکەیەک بۆ ئەم کاڵا نییە</MenuItem>
+                        )}
+                        {itemUnits.map((u) => (
+                          <MenuItem key={u.id} value={u.id}>{u.name}</MenuItem>
+                        ))}
+                      </TextField>
                 </Grid>
               </Grid>
               <TextField
