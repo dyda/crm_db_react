@@ -143,36 +143,41 @@ const ItemQuantityInfoPDF = ({
   items = [],
   categories = [],
   brands = [],
+  branches = [],
   warehouses = [],
   company = {},
   filters = {},
 }) => {
   // Prepare filter display
-  const filterTexts = [];
-  if (filters.category_id) {
-    const cat = categories.find(c => c.id === filters.category_id);
-    filterTexts.push(`گرووپ: ${cat ? cat.name : filters.category_id}`);
-  }
-  if (filters.brand_id) {
-    const brand = brands.find(b => b.id === filters.brand_id);
-    filterTexts.push(`براند: ${brand ? brand.name : filters.brand_id}`);
-  }
-  if (filters.warehouse_id) {
-    const warehouse = warehouses.find(w => w.id === filters.warehouse_id);
-    filterTexts.push(`کۆگا: ${warehouse ? warehouse.name : filters.warehouse_id}`);
-  }
-  if (filters.barcode) {
-    filterTexts.push(`بارکۆد: ${filters.barcode}`);
-  }
-  if (filters.name) {
-    filterTexts.push(`ناو: ${filters.name}`);
-  }
-  if (filters.min_quantity) {
-    filterTexts.push(`کەمترین بڕ: ${filters.min_quantity}`);
-  }
-  if (filters.max_quantity) {
-    filterTexts.push(`زۆرترین بڕ: ${filters.max_quantity}`);
-  }
+ const filterTexts = [];
+if (filters.category_id) {
+  const cat = categories.find(c => c.id === filters.category_id);
+  filterTexts.push(`گرووپ: ${cat ? cat.name : filters.category_id}`);
+}
+if (filters.brand_id) {
+  const brand = brands.find(b => b.id === filters.brand_id);
+  filterTexts.push(`براند: ${brand ? brand.name : filters.brand_id}`);
+}
+if (filters.warehouse_id) {
+  const warehouse = warehouses.find(w => w.id === filters.warehouse_id);
+  filterTexts.push(`کۆگا: ${warehouse ? warehouse.name : filters.warehouse_id}`);
+}
+if (filters.branch_id) {
+  const branch = (branches || []).find(b => String(b.id) === String(filters.branch_id));
+filterTexts.push(`لق: ${branch ? branch.name : filters.branch_id}`);
+}
+if (filters.barcode) {
+  filterTexts.push(`بارکۆد: ${filters.barcode}`);
+}
+if (filters.name) {
+  filterTexts.push(`ناو: ${filters.name}`);
+}
+if (filters.min_quantity) {
+  filterTexts.push(`کەمترین بڕ: ${filters.min_quantity}`);
+}
+if (filters.max_quantity) {
+  filterTexts.push(`زۆرترین بڕ: ${filters.max_quantity}`);
+}
 
   // Export/print date
   const exportDate = new Date().toLocaleString('ckb-IQ');

@@ -44,12 +44,13 @@ function ItemQuantityInfo({ isDrawerOpen }) {
   const [reportItems, setReportItems] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
   const [success, setSuccess] = useState(false);
-
+  const [branches, setBranches] = useState([]);
   // Fetch dropdown data
   useEffect(() => {
     axiosInstance.get('/item-category/index').then(res => setCategories(res.data || []));
     axiosInstance.get('/item-brand/index').then(res => setBrands(res.data || []));
     axiosInstance.get('/warehouse/index').then(res => setWarehouses(res.data || []));
+    axiosInstance.get('/branch/index').then(res => setBranches(res.data || []));
   }, []);
 
   // Fetch items for table (paginated)
@@ -241,6 +242,23 @@ function ItemQuantityInfo({ isDrawerOpen }) {
                   />
                 </Grid>
                 <Grid item xs={12} md={2.4}>
+                      <TextField
+                        select
+                        fullWidth
+                        size="small"
+                        label="لق"
+                        name="branch_id"
+                        value={filters.branch_id}
+                        onChange={handleFilterChange}
+                        sx={{ minWidth: 140 }}
+                      >
+                        <MenuItem value="">هەموو</MenuItem>
+                        {branches.map(b => (
+                          <MenuItem key={b.id} value={b.id}>{b.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                <Grid item xs={12} md={2.4}>
                   <ReportButton onClick={handleOpenPdfPreview} fullWidth />
                 </Grid>
                 <Grid item xs={12} md={2.4}>
@@ -309,6 +327,7 @@ function ItemQuantityInfo({ isDrawerOpen }) {
                         direction={filters.sortOrder}
                         onClick={() => handleSort('quantity')}
                       >
+                        
                         بڕ
                       </TableSortLabel>
                     </TableCell>
@@ -408,6 +427,7 @@ function ItemQuantityInfo({ isDrawerOpen }) {
           <ItemQuantityInfoPDF
             items={reportItems}
             categories={categories}
+            branches={branches} 
             brands={brands}
             warehouses={warehouses}
             company={company}
