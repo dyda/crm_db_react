@@ -18,16 +18,18 @@ const PdfReportHeader = ({ company, title, filters, exportDate, styles }) => (
         />
       )}
     </View>
+       <Text style={[styles.exportDate, { marginBottom: 0 ,textAlign:'left'}]}>
+        بەرواری چاپ: {exportDate}
+      </Text>
+
     <Text style={styles.title}>{title}</Text>
     <View style={{ flexDirection: 'row-reverse', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
       {filters && filters.length > 0 && (
         <Text style={[styles.filters, { marginBottom: 0 }]}>
-          گەڕان بەپێی : {filters.join(' | ')}
+         {filters.join(' | ')}
         </Text>
       )}
-      <Text style={[styles.exportDate, { marginBottom: 0 }]}>
-        بەرواری چاپ: {exportDate}
-      </Text>
+     
     </View>
   </>
 );
