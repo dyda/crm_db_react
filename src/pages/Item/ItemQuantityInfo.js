@@ -11,13 +11,13 @@ import ClearButton from '../../components/common/ClearButton';
 import axiosInstance from '../../components/service/axiosInstance';
 import DialogPdf from '../../components/utils/DialogPdf';
 import ItemQuantityInfoPDF from '../../components/reports/item/ItemQuantityInfoPDF';
-import ItemAutocomplete from '../../components/Item/ItemAutocomplete';
 import { useCompanyInfo } from '../../hooks/useCompanyInfo';
 
 function ItemQuantityInfo({ isDrawerOpen }) {
   // Filters and state
   const [filters, setFilters] = useState({
     item_id: '',
+    name: '',
     barcode: '',
     category_id: '',
     brand_id: '',
@@ -110,6 +110,7 @@ function ItemQuantityInfo({ isDrawerOpen }) {
   const handleClearAll = () => {
     setFilters({
       item_id: '',
+      name: '',
       barcode: '',
       category_id: '',
       brand_id: '',
@@ -186,12 +187,27 @@ function ItemQuantityInfo({ isDrawerOpen }) {
                     ))}
                   </TextField>
                 </Grid>
-                <Grid item xs={12} md={2.4}>
-                  <ItemAutocomplete
-                    value={filters.item_id}
-                    onChange={val => setFilters(f => ({ ...f, item_id: val, page: 1 }))}
-                    label="گەڕان بە ناو/بارکۆد"
+                   <Grid item xs={12} md={2.4}>
+                  <TextField
+                    fullWidth
                     size="small"
+                    label="ناو"
+                    name="name"
+                    value={filters.name}
+                    onChange={handleFilterChange}
+                    sx={{ minWidth: 140 }}
+                    InputProps={{
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          {filters.name && (
+                            <IconButton onClick={() => handleClearFilter('name')} size="small">
+                              <ClearIcon fontSize="small" />
+                            </IconButton>
+                          )}
+                          <SearchIcon fontSize="small" />
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} md={2.4}>
