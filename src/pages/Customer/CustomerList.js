@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Table,
@@ -7,548 +7,410 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableFooter,
   Paper,
   Button,
   IconButton,
-  Card,
-  Grid,
   Pagination,
   TextField,
   InputAdornment,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Typography,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
   Snackbar,
   Alert,
-  
+  Typography,
+  MenuItem,
+  Grid,
+  Stack,
+  Select,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import AddIcon from '@mui/icons-material/Add';
-import PrintIcon from '@mui/icons-material/Print';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
-import ClearIcon from '@mui/icons-material/Clear';
-import CircularProgress from '@mui/material/CircularProgress';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
+  ArrowUpward,
+  ArrowDownward,
+  Clear as ClearIcon,
+  FilterList as FilterListIcon,
+} from '@mui/icons-material';
 import axiosInstance from '../../components/service/axiosInstance';
-
+import ConfirmDialog from '../../components/utils/ConfirmDialog';
+import ReportButton from '../../components/common/ReportButton';
+import { useNavigate } from 'react-router-dom';
 
 function CustomerList({ isDrawerOpen }) {
   const navigate = useNavigate();
-
-  // State Initialization
   const [customers, setCustomers] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'asc' });
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState('');
-  const [selectedLoanRange, setSelectedLoanRange] = useState('');
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState(null);
+  const [sortBy, setSortBy] = useState('id');
+  const [sortOrder, setSortOrder] = useState('asc');
+  const [filterState, setFilterState] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterZone, setFilterZone] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [zones, setZones] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const rowsPerPage = 10;
 
-    const [openDialog, setOpenDialog] = useState(false);
-    const [snackbarOpen, setSnackbarOpen] = useState(false);
-    const [snackbarMessage, setSnackbarMessage] = useState('');
-    const [selectedCustomerId, setSelectedCustomerId] = useState(null);
-
-  const rowsPerPage = 5;
-
-  // Fetch Customers from API
+  // Fetch customers
   useEffect(() => {
-    const fetchCustomers = async () => {
-      setIsLoading(true);
-      try {
-        const response = await axiosInstance.get('/customer/list');
-        if (response.data?.success) {
-          setCustomers(response.data.data || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch customers:', error);
-        setSnackbarMessage('هەڵە ڕوویدا لەگەڕانەوەی زانیارییەکاندا');
-        setSnackbarOpen(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-  
-    fetchCustomers();
+    fetchCustomers(currentPage, rowsPerPage, sortBy, sortOrder, searchQuery, filterState, filterType, filterZone, filterCategory);
+    // eslint-disable-next-line
+  }, [currentPage, sortBy, sortOrder, searchQuery, filterState, filterType, filterZone, filterCategory]);
+
+  useEffect(() => {
+    axiosInstance.get('/zone/index')
+      .then((response) => {
+        setZones(Array.isArray(response.data) ? response.data : response.data.results || []);
+      })
+      .catch(() => setZones([]));
+    axiosInstance.get('/customer-category/index')
+      .then((response) => {
+        setCategories(Array.isArray(response.data) ? response.data : response.data.results || []);
+      })
+      .catch(() => setCategories([]));
   }, []);
 
-  // Fetch Categories from API
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await axiosInstance.get('/customer_category/list');
-        if (response.status === 200) {
-          setCategories(response.data?.data || []);
-        }
-      } catch (error) {
-        console.error('Error fetching customer categories:', error);
-      }
-    };
-    fetchCategories();
-  }, []);
+  const fetchCustomers = async (
+    page = 1,
+    pageSize = rowsPerPage,
+    sortField = sortBy,
+    sortDirection = sortOrder,
+    search = '',
+    state = '',
+    type = '',
+    zone = '',
+    category = ''
+  ) => {
+    try {
+      const params = {
+        page,
+        pageSize,
+        sortBy: sortField,
+        sortOrder: sortDirection,
+        name: search,
+        state,
+        type,
+        zone_id: zone,
+        category_id: category,
+      };
+      const response = await axiosInstance.get('/customer/index', { params });
+      setCustomers(response.data || []);
+    } catch (error) {
+      setSnackbarMessage('هەڵە ڕوویدا لە بارکردنی زانیاری');
+      setSnackbarOpen(true);
+    }
+  };
 
-  // Calculate Loans Less Than 0
-  const totalLoanLessThanZero = customers.reduce(
-    (sum, customer) => (customer.loan < 0 ? sum + (Number(customer.loan) || 0) : sum),
-    0
-  );
-
-  // Calculate Loans Greater Than 0
-  const totalLoanGreaterThanZero = customers.reduce(
-    (sum, customer) => (customer.loan > 0 ? sum + (Number(customer.loan) || 0) : sum),
-    0
-  );
-
-  // Reset Pagination on Filter/Search Change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, selectedCategory, selectedType, selectedLoanRange]);
-
-  // Sorting Logic
   const handleSort = (key) => {
-    if (!customers.some((customer) => key in customer)) return;
-
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
-    }));
+    setSortBy(key);
+    setSortOrder((prev) => (sortBy === key && sortOrder === 'asc' ? 'desc' : 'asc'));
+    setCurrentPage(1);
   };
 
   const getSortIcon = (key) =>
-    sortConfig.key === key ? (
-      sortConfig.direction === 'asc' ? <ArrowUpwardIcon fontSize="small" /> : <ArrowDownwardIcon fontSize="small" />
+    sortBy === key ? (
+      sortOrder === 'asc' ? (
+        <ArrowUpward fontSize="small" />
+      ) : (
+        <ArrowDownward fontSize="small" />
+      )
     ) : null;
-
-  const sortedCustomers = useMemo(() => {
-    return [...customers].sort((a, b) => {
-      const aValue = a[sortConfig.key] || '';
-      const bValue = b[sortConfig.key] || '';
-
-      const aString = typeof aValue === 'string' ? aValue : String(aValue);
-      const bString = typeof bValue === 'string' ? bValue : String(bValue);
-
-      return sortConfig.direction === 'asc'
-        ? aString.localeCompare(bString, undefined, { numeric: true })
-        : bString.localeCompare(aString, undefined, { numeric: true });
-    });
-  }, [customers, sortConfig]);
-
-  const filteredCustomers = useMemo(() => {
-    const normalizedQuery = searchQuery.toLowerCase();
-    return sortedCustomers.filter((customer) => {
-      const matchesCategory = selectedCategory ? customer.category?.name === selectedCategory : true;
-      const matchesType = selectedType ? customer.type === selectedType : true;
-      const matchesLoanRange =
-        selectedLoanRange === 'negative'
-          ? customer.loan < 0
-          : selectedLoanRange === 'zero'
-          ? customer.loan === 0
-          : selectedLoanRange === 'positive'
-          ? customer.loan > 0
-          : true;
-
-      const matchesSearch = [
-        customer.name?.toLowerCase(),
-        customer.type?.toLowerCase(),
-        customer.city?.toLowerCase(),
-        customer.category?.name?.toLowerCase(),
-        String(customer.loan),
-      ].some((field) => field?.includes(normalizedQuery));
-
-      return matchesCategory && matchesType && matchesLoanRange && matchesSearch;
-    });
-  }, [sortedCustomers, searchQuery, selectedCategory, selectedType, selectedLoanRange]);
-
-  // Pagination Logic
-  const indexOfLastCustomer = currentPage * rowsPerPage;
-  const indexOfFirstCustomer = indexOfLastCustomer - rowsPerPage;
-  const currentCustomers = filteredCustomers.slice(indexOfFirstCustomer, indexOfLastCustomer);
 
   const handlePageChange = (_, value) => setCurrentPage(value);
   const handleAddCustomer = () => navigate('/customer/register');
   const handleEditCustomer = (id) => navigate(`/customer/edit/${id}`);
-
   const handleClearSearch = () => setSearchQuery('');
-  const handleClearAllFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory('');
-    setSelectedType('');
-    setSelectedLoanRange('');
+  const handleDeleteClick = (id) => {
+    setSelectedCustomerId(id);
+    setOpenDialog(true);
   };
 
-  const loanRanges = [
-    { label: 'قەرزەکانم لای کڕیار', value: 'negative' },
-    { label: 'قەرزەکانی خەڵک', value: 'positive' },
-    { label: 'قەرزی سفر', value: 'zero' },
-
-  ];
-
-    // Delete Handlers
-    const handleDeleteClick = (id) => {
-      setSelectedCustomerId(id);
-      setOpenDialog(true);
-    };
-  
-    const handleDeleteConfirm = async () => {
-      try {
-        await axiosInstance.delete(`/customer/delete/${selectedCustomerId}`);
-        setCustomers((prev) => prev.filter((customer) => customer.id !== selectedCustomerId));
-        setSnackbarMessage('کڕیاری دیاریکراو سڕایەوە');
-      } catch (error) {
-        setSnackbarMessage('هەڵە ڕوویدا لەسڕینەوەی زانیاری کڕیار');
-      } finally {
-        setOpenDialog(false);
-        setSnackbarOpen(true);
-      }
-    };
-  
-    const handleDialogClose = () => {
+  const handleDeleteConfirm = async () => {
+    try {
+      await axiosInstance.delete(`/customer/delete/${selectedCustomerId}`);
+      setCustomers((prev) => prev.filter((customer) => customer.id !== selectedCustomerId));
+      setSnackbarMessage('کڕیار سڕایەوە بە سەرکەوتوویی');
+    } catch (error) {
+      setSnackbarMessage('هەڵە ڕوویدا لە سڕینەوەی کڕیار');
+    } finally {
       setOpenDialog(false);
-      setSelectedCustomerId(null);
-    };
-  
-    // Snackbar Handler
-    const handleSnackbarClose = () => setSnackbarOpen(false);
-  
+      setSnackbarOpen(true);
+    }
+  };
 
+  // Calculate sums
+  const totalCount = customers.length;
+  const totalPositiveLoan = customers.reduce(
+    (sum, c) => sum + (Number(c.loan) > 0 ? Number(c.loan) : 0),
+    0
+  );
+  const totalNegativeLoan = customers.reduce(
+    (sum, c) => sum + (Number(c.loan) < 0 ? Number(c.loan) : 0),
+    0
+  );
 
- 
-  return (
+  // Pagination
+  const paginatedCustomers = customers.slice(
+    (currentPage - 1) * rowsPerPage,
+    currentPage * rowsPerPage
+  );
 
-    <Box sx={{ marginRight: isDrawerOpen ? '250px' : '0', transition: 'margin-right 0.3s ease-in-out' }}>
-      <Card sx={{ margin: 1 }}>
-        <Grid container spacing={2}>
-          <Grid item xs={12}>
-            <Box p={2}>
-              <Box mb={3}>
-                <Grid container spacing={2} alignItems="center">
-                  {/* Search Bar */}
-                  <Grid item xs={12} sm={6} md={4}>
-                    <TextField
-                      label="گەڕان"
-                      variant="outlined"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      fullWidth
-                      InputProps={{
-                        endAdornment: searchQuery && (
-                          <InputAdornment position="end">
-                            <IconButton onClick={handleClearSearch}>
-                              <ClearIcon />
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
-                    />
-                  </Grid>
-
-                  {/* Dropdown: Category */}
-                  <Grid item xs={12} sm={6} md={2}>
-                    <FormControl fullWidth>
-                      <InputLabel>گرووپ</InputLabel>
-                      <Select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        label="گرووپ"
-                      >
-                        <MenuItem value="">هەمووی</MenuItem>
-                        {categories.map((category) => (
-                          <MenuItem key={category.id} value={category.name}>
-                            {category.name}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-
-                  {/* Dropdown: Type */}
-                  <Grid item xs={12} sm={6} md={2}>
-                    <FormControl fullWidth>
-                      <InputLabel>جۆر</InputLabel>
-                      <Select
-                        value={selectedType}
-                        onChange={(e) => setSelectedType(e.target.value)}
-                        label="جۆر"
-                      >
-                        <MenuItem value="">هەردووکی</MenuItem>
-                        <MenuItem value="فرۆشتن">فرۆشتن</MenuItem>
-                        <MenuItem value="کڕین">کڕین</MenuItem>
-                      </Select>
-                    </FormControl>
-                  </Grid>
-
-                  {/* Dropdown: Loan */}
-                  <Grid item xs={12} sm={6} md={2}>
-                    <FormControl fullWidth>
-                      <InputLabel>قەرز</InputLabel>
-                      <Select
-                        value={selectedLoanRange}
-                        onChange={(e) => setSelectedLoanRange(e.target.value)}
-                        label="قەرز"
-                      >
-                        <MenuItem value="">هەمووی</MenuItem>
-                        {loanRanges.map((range) => (
-                          <MenuItem key={range.value} value={range.value}>
-                            {range.label}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Grid>
-
-                  <Grid item xs={12} sm={6} md={2}>
-                    <Box display="flex" gap={1}>
-
-                    <Button
-                        variant="contained"
-                        color="success"
-                        startIcon={<AddIcon />}
-                        onClick={handleAddCustomer}
-                        fullWidth
-                      >
-                        زیادکردن
-                      </Button>
-
-                      <Button
-                        variant="contained"
-                        color="secondary"
-                        startIcon={<ClearIcon />}
-                        onClick={handleClearAllFilters}
-                        fullWidth
-                      >
-                        پاکردنەوە
-                      </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {isLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" height="100vh">
-                    <CircularProgress />
-                </Box>
-              ) : (
-                <>
-                  <TableContainer component={Paper}>
-                    <Table>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell onClick={() => handleSort('id')} style={{ cursor: 'pointer' }}>
-                            # {getSortIcon('id')}
-                          </TableCell>
-                          <TableCell>گرووپ</TableCell>
-                          <TableCell onClick={() => handleSort('name')} style={{ cursor: 'pointer' }}>
-                            ناو {getSortIcon('name')}
-                          </TableCell>
-                          <TableCell>مۆبایل</TableCell>
-                          <TableCell onClick={() => handleSort('city')} style={{ cursor: 'pointer' }}>
-                            شار {getSortIcon('city')}
-                          </TableCell>
-                          <TableCell onClick={() => handleSort('type')} style={{ cursor: 'pointer' }}>
-                            جۆر {getSortIcon('type')}
-                          </TableCell>
-                          <TableCell onClick={() => handleSort('loan')} style={{ cursor: 'pointer' }}>
-                            قەرز {getSortIcon('loan')}
-                          </TableCell>
-                          <TableCell onClick={() => handleSort('limit_loan_price')} style={{ cursor: 'pointer' }}>
-                            سنوری قەرز {getSortIcon('limit_loan_price')}
-                          </TableCell>
-                          <TableCell>چاپکردن</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {currentCustomers.length > 0 ? (
-                          currentCustomers.map((customer) => (
-                            <TableRow key={customer.id}>
-                              <TableCell>{customer.id}</TableCell>
-                              <TableCell>{customer.category?.name}</TableCell>
-                              <TableCell>{customer.name}</TableCell>
-                              <TableCell>{customer.phone_1}</TableCell>
-                              <TableCell>{customer.city}</TableCell>
-                              <TableCell
-                                style={{
-                                  color:
-                                    customer.type === 'فرۆشتن'
-                                      ? 'green'
-                                      : customer.type === 'کڕین'
-                                      ? 'red'
-                                      : 'blue',
-                                }}
-                              >
-                                {customer.type}
-                              </TableCell>
-                              <TableCell
-                                style={{
-                                  color:
-                                    customer.loan < 0
-                                      ? 'red'
-                                      : customer.loan > 0
-                                      ? 'green'
-                                      : 'black',
-                                }}
-                              >
-                                {new Intl.NumberFormat('en-US', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                }).format(customer.loan)}
-                              </TableCell>
-                              <TableCell>
-                                {new Intl.NumberFormat('en-US', {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                }).format(customer.limit_loan_price)}
-                              </TableCell>
-                              <TableCell>
-                              <IconButton color="primary" onClick={() => handleEditCustomer(customer.id)}>
-                                <EditIcon />
-                              </IconButton>
-                              <IconButton color="secondary" onClick={() => handleDeleteClick(customer.id)}>
-                                <DeleteIcon />
-                              </IconButton>
-                              <IconButton
-                                  color="primary"
-                            
-                                  aria-label="Print customer details"
-                                >
-                                  <PrintIcon />
-                                </IconButton>
-                            </TableCell>
-                             
-                            </TableRow>
-                          ))
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={7} align="center">
-                              هیچ داتایەک نەدۆزرایەوە
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-
-                  </Table>
-
-                        
-
-                  </TableContainer>
-
-
-                  <tfoot>
-
-                          {filteredCustomers.length > 0 && (
-                            <>
-
-                      <Box mt={2}>
-                            <Grid container spacing={2} alignItems="center">
-                              {/* Total Customers */}
-                              <Grid item xs={12} sm={4} md={4}>
-                                <Box display="flex" justifyContent="space-between" alignItems="center">
-                                  <Typography variant="body1">
-                                    <strong>کۆی گشتی:</strong> {filteredCustomers.length}
-                                  </Typography>
-                                </Box>
-                              </Grid>
-
-                              {/* Loans to Customers */}
-                              <Grid item xs={12} sm={4} md={4}>
-                                <Box display="flex" justifyContent="flex-start" alignItems="center">
-                                  <Typography variant="body1">
-                                    <strong>قەرزەکانم لای کڕیار:</strong>{' '}
-                                    <span style={{ color: totalLoanLessThanZero < 0 ? 'red' : 'black' }}>
-                                      {new Intl.NumberFormat('en-US', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                      }).format(totalLoanLessThanZero)}
-                                    </span>
-                                  </Typography>
-                                </Box>
-                              </Grid>
-
-                              {/* Loans from People */}
-                              <Grid item xs={12} sm={4} md={4}>
-                                <Box display="flex" justifyContent="flex-start" alignItems="center">
-                                  <Typography variant="body1">
-                                    <strong>قەرزەکانی خەڵک:</strong>{' '}
-                                    <span style={{ color: totalLoanGreaterThanZero > 0 ? 'green' : 'black' }}>
-                                      {new Intl.NumberFormat('en-US', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                      }).format(totalLoanGreaterThanZero)}
-                                    </span>
-                                  </Typography>
-                                </Box>
-                              </Grid>
-
-                            </Grid>
-                          </Box>
-                                              
-
-                            </>
-                          )}
-                       </tfoot>
-
-                       <Button
-                              variant="contained"
-                              color="primary"
-                              startIcon={<PrintIcon />}
-                            >
-                              View Report
-                            </Button>      
-
-                  <Box mt={2} display="flex" justifyContent="center">
-                    <Pagination
-                      count={Math.max(1, Math.ceil(filteredCustomers.length / rowsPerPage))}
-                      page={currentPage}
-                      onChange={handlePageChange}
-                      color="primary"
-                    />
-                  </Box>
-
-                  {/* Delete Confirmation Dialog */}
-                  <Dialog open={openDialog} onClose={handleDialogClose}>
-                    <DialogTitle>سڕینەوەی کڕیار</DialogTitle>
-                    <DialogContent>
-                      <DialogContentText>ئایە دڵنیایت لە سڕینەوەی ئەم کڕیارە؟</DialogContentText>
-                    </DialogContent>
-                    <DialogActions>
-                      <Button onClick={handleDialogClose} color="primary">
-                        پاشگەزبوونەوە
-                      </Button>
-                      <Button onClick={handleDeleteConfirm} color="secondary" autoFocus>
-                        سڕینەوە
-                      </Button>
-                    </DialogActions>
-                  </Dialog>
-
-                  {/* Success Snackbar */}
-                  <Snackbar
-                    open={snackbarOpen}
-                    autoHideDuration={3000}
-                    onClose={handleSnackbarClose}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-                  >
-                    <Alert onClose={handleSnackbarClose} severity="success">
-                      {snackbarMessage}
-                    </Alert>
-                  </Snackbar>
-                </>
-              )}
-            </Box>
+  // Responsive filter section
+  const filterSection = (
+    <Box sx={{ mb: 2 }}>
+      <Paper sx={{ p: { xs: 2, md: 3 }, mb: 2 }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={3}>
+            <TextField
+              fullWidth
+              label="گەڕان"
+              value={searchQuery}
+              onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+              placeholder="ناوی کڕیار..."
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={handleClearSearch} size="small">
+                      <ClearIcon fontSize="small" />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>حاڵەت</InputLabel>
+              <Select
+                label="حاڵەت"
+                value={filterState}
+                onChange={e => { setFilterState(e.target.value); setCurrentPage(1); }}
+                startAdornment={<FilterListIcon fontSize="small" />}
+              >
+                <MenuItem value="">هەموو</MenuItem>
+                <MenuItem value="چالاک">چالاک</MenuItem>
+                <MenuItem value="ناچالاک">ناچالاک</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>جۆر</InputLabel>
+              <Select
+                label="جۆر"
+                value={filterType}
+                onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
+                startAdornment={<FilterListIcon fontSize="small" />}
+              >
+                <MenuItem value="">هەموو</MenuItem>
+                <MenuItem value="هەردووکی">هەردووکی</MenuItem>
+                <MenuItem value="کڕین">کڕین</MenuItem>
+                <MenuItem value="فرۆشتن">فرۆشتن</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <FormControl fullWidth>
+              <InputLabel>زون</InputLabel>
+              <Select
+                label="زون"
+                value={filterZone}
+                onChange={e => { setFilterZone(e.target.value); setCurrentPage(1); }}
+                startAdornment={<FilterListIcon fontSize="small" />}
+              >
+                <MenuItem value="">هەموو</MenuItem>
+                {zones.map((zone) => (
+                  <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={6} md={3}>
+            <FormControl fullWidth>
+              <InputLabel>گرووپ</InputLabel>
+              <Select
+                label="گرووپ"
+                value={filterCategory}
+                onChange={e => { setFilterCategory(e.target.value); setCurrentPage(1); }}
+                startAdornment={<FilterListIcon fontSize="small" />}
+              >
+                <MenuItem value="">هەموو</MenuItem>
+                {categories.map((cat) => (
+                  <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
         </Grid>
-      </Card>
+      </Paper>
+    </Box>
+  );
+
+  return (
+    <Box
+      sx={{
+        marginRight: isDrawerOpen ? '250px' : '0',
+        transition: 'margin-right 0.3s ease-in-out',
+        px: { xs: 1, md: 2 },
+        py: { xs: 2, md: 3 },
+      }}
+    >
+      {/* Header */}
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        spacing={2}
+        mb={3}
+      >
+        <Typography variant="h5" fontWeight="bold" color="primary.main">
+          لیستی کڕیارەکان
+        </Typography>
+        <Stack direction="row" spacing={2}>
+          <ReportButton
+            onClick={() => {}}
+            sx={{ borderRadius: 2, fontWeight: 'bold', px: 3, py: 1 }}
+          />
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={handleAddCustomer}
+            sx={{ borderRadius: 2, fontWeight: 'bold', px: 3, py: 1 }}
+          >
+            زیادکردن
+          </Button>
+        </Stack>
+      </Stack>
+
+      {/* Professional Filter Section */}
+      {filterSection}
+
+      {/* Table */}
+      <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell onClick={() => handleSort('id')} sx={{ cursor: 'pointer' }}>
+                ID {getSortIcon('id')}
+              </TableCell>
+              <TableCell onClick={() => handleSort('name')} sx={{ cursor: 'pointer' }}>
+                ناو {getSortIcon('name')}
+              </TableCell>
+              <TableCell>مۆبایل١</TableCell>
+              <TableCell>مۆبایل٢</TableCell>
+              <TableCell>جۆر</TableCell>
+              <TableCell>حاڵەت</TableCell>
+              <TableCell>شار</TableCell>
+              <TableCell>زون</TableCell>
+              <TableCell>گرووپ</TableCell>
+              <TableCell>کۆد</TableCell>
+              <TableCell>ناوی کەفیل</TableCell>
+              <TableCell>مۆبایلی کەفیل</TableCell>
+              <TableCell>ناونیشان</TableCell>
+              <TableCell>قەرز</TableCell>
+              <TableCell>تێبینی</TableCell>
+              <TableCell align="center">کردار</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {paginatedCustomers.map((customer) => (
+              <TableRow key={customer.id} hover>
+                <TableCell>{customer.id}</TableCell>
+                <TableCell>{customer.name}</TableCell>
+                <TableCell>{customer.phone_1}</TableCell>
+                <TableCell>{customer.phone_2}</TableCell>
+                <TableCell>{customer.type}</TableCell>
+                <TableCell>{customer.state}</TableCell>
+                <TableCell>{customer.city_id}</TableCell>
+                <TableCell>{customer.zone_id}</TableCell>
+                <TableCell>{customer.category_id}</TableCell>
+                <TableCell>{customer.code}</TableCell>
+                <TableCell>{customer.kafyl_name}</TableCell>
+                <TableCell>{customer.kafyl_phone}</TableCell>
+                <TableCell>{customer.address}</TableCell>
+                <TableCell>
+                  <Typography
+                    sx={{
+                      color: Number(customer.loan) > 0 ? 'green' : Number(customer.loan) < 0 ? 'red' : 'inherit',
+                    }}
+                  >
+                    {Number(customer.loan || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </Typography>
+                </TableCell>
+                <TableCell>{customer.note}</TableCell>
+                <TableCell align="center">
+                  <IconButton color="primary" onClick={() => handleEditCustomer(customer.id)}>
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton color="error" onClick={() => handleDeleteClick(customer.id)}>
+                    <DeleteIcon />
+                  </IconButton>
+                </TableCell>
+              </TableRow>
+            ))}
+            {!paginatedCustomers.length && (
+              <TableRow>
+                <TableCell colSpan={16} align="center">
+                  هیچ زانیارییەک نەدۆزرایەوە.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TableCell colSpan={8} align="right" sx={{ background: '#f5f5f5', fontWeight: 'bold', fontSize: 16 }}>
+                کۆی گشتی کڕیارەکان: <span style={{ fontWeight: 'bold', color: '#1976d2' }}>{totalCount}</span>
+              </TableCell>
+              <TableCell colSpan={4} align="center" sx={{ background: '#f5f5f5', fontWeight: 'bold', fontSize: 16 }}>
+                قەرزی پۆزیتڤ: <span style={{ fontWeight: 'bold', color: '#388e3c' }}>{totalPositiveLoan.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </TableCell>
+              <TableCell colSpan={4} align="center" sx={{ background: '#f5f5f5', fontWeight: 'bold', fontSize: 16 }}>
+                قەرزی نێگەتڤ: <span style={{ fontWeight: 'bold', color: '#d32f2f' }}>{totalNegativeLoan.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </TableCell>
+            </TableRow>
+          </TableFooter>
+        </Table>
+      </TableContainer>
+
+      {/* Pagination */}
+      <Box display="flex" justifyContent="center" mt={3}>
+        <Pagination
+          count={Math.ceil(customers.length / rowsPerPage)}
+          page={currentPage}
+          onChange={handlePageChange}
+          color="primary"
+        />
+      </Box>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={openDialog}
+        onClose={setOpenDialog}
+        onConfirm={handleDeleteConfirm}
+        title="سڕینەوەی کڕیار"
+        description="ئایە دڵنیایت لە سڕینەوەی ئەم کڕیارە؟ ئەم کردارە گەرێنەوە نییە."
+        confirmText="سڕینەوە"
+        cancelText="پاشگەزبوونەوە"
+      />
+
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={4000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert severity="info" onClose={() => setSnackbarOpen(false)} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
-
 export default CustomerList;

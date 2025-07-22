@@ -180,6 +180,9 @@ function CustomerRegister({ isDrawerOpen }) {
       latitude: formData.latitude ?? 0,
       longitude: formData.longitude ?? 0,
     };
+    
+    console.log('Submitting data:', dataToSubmit);
+    
 
     const request = id
       ? axiosInstance.put(`/customer/update/${id}`, dataToSubmit)
@@ -206,11 +209,12 @@ function CustomerRegister({ isDrawerOpen }) {
         }
       })
       .catch((error) => {
-        setError(
-          error.response?.data?.message ||
-          error.message ||
-          'هەڵە ڕوویدا لە تۆمارکردنی کڕیار.'
-        );
+         setError(
+            error.response?.data?.error || // <-- use .error for backend validation
+            error.response?.data?.message || // fallback to .message
+            error.message ||
+            'هەڵە ڕوویدا لە تۆمارکردنی کڕیار.'
+          );
       })
       .finally(() => {
         setLoading(false);
@@ -237,381 +241,380 @@ function CustomerRegister({ isDrawerOpen }) {
             </Box>
 
             <form onSubmit={handleSubmit}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="گرووپ"
-                    name="category_id"
-                    select
-                    value={formData.category_id}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.category_id}
-                    helperText={formErrors.category_id}
-                    sx={{ mb: 2 }}
-                  >
-                    <MenuItem value={0}>هەڵبژێرە</MenuItem>
-                    {categories.map((category) => (
-                      <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="زون"
-                    name="zone_id"
-                    select
-                    value={formData.zone_id}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.zone_id}
-                    helperText={formErrors.zone_id}
-                    sx={{ mb: 2 }}
-                  >
-                    <MenuItem value={0}>هەڵبژێرە</MenuItem>
-                    {zones.map((zone) => (
-                      <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="شار"
-                    name="city_id"
-                    select
-                    value={formData.city_id}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.city_id}
-                    helperText={formErrors.city_id}
-                    sx={{ mb: 2 }}
-                  >
-                    <MenuItem value={0}>هەڵبژێرە</MenuItem>
-                    {cities.map((city) => (
-                      <MenuItem key={city.id} value={city.id}>{city.name}</MenuItem>
-                    ))}
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="کۆد"
-                    name="code"
-                    value={formData.code}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.code}
-                    helperText={formErrors.code}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.code && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'code')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="ناو"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.name}
-                    helperText={formErrors.name}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.name && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'name')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="مۆبایلی١"
-                    name="phone_1"
-                    value={formData.phone_1}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.phone_1}
-                    helperText={formErrors.phone_1}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.phone_1 && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'phone_1')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="مۆبایلی٢"
-                    name="phone_2"
-                    value={formData.phone_2}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.phone_2}
-                    helperText={formErrors.phone_2}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.phone_2 && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'phone_2')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="ناونیشان"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.address}
-                    helperText={formErrors.address}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.address && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'address')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="جۆری مامەڵە"
-                    name="type"
-                    select
-                    value={formData.type}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.type}
-                    helperText={formErrors.type}
-                    required
-                    sx={{ mb: 2 }}
-                  >
-                    <MenuItem value="هەردووکی">هەردووکی</MenuItem>
-                    <MenuItem value="کڕین">کڕین</MenuItem>
-                    <MenuItem value="فرۆشتن">فرۆشتن</MenuItem>
-                  </TextField>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="حاڵەت"
-                    name="state"
-                    select
-                    value={formData.state}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.state}
-                    helperText={formErrors.state}
-                    sx={{ mb: 2 }}
-                  >
-                    <MenuItem value="چالاک">چالاک</MenuItem>
-                    <MenuItem value="ناچالاک">ناچالاک</MenuItem>
-                  </TextField>
-                </Grid>
-              </Grid>
+            <Grid container spacing={2} sx={{ p: 2 }}>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="مۆڵەتی قەرز"
-                    name="limit_loan_day"
-                    value={formData.limit_loan_day}
-                    onChange={(e) => handleChangeNumber(e, setFormData, setFormErrors)}
-                    error={!!formErrors.limit_loan_day}
-                    helperText={formErrors.limit_loan_day}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.limit_loan_day && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'limit_loan_day')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="سنوری قەرز"
-                    name="limit_loan_price"
-                    value={formData.limit_loan_price}
-                    onChange={(e) => handleChangeNumber(e, setFormData, setFormErrors)}
-                    error={!!formErrors.limit_loan_price}
-                    helperText={formErrors.limit_loan_price}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.limit_loan_price && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'limit_loan_price')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="کۆبۆن"
-                    name="cobon"
-                    value={formData.cobon}
-                    onChange={(e) => handleChangeNumber(e, setFormData, setFormErrors)}
-                    error={!!formErrors.cobon}
-                    helperText={formErrors.cobon}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.cobon && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'cobon')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
+                    {/* Group 1: Location Info */}
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="گرووپ"
+                        name="category_id"
+                        select
+                        value={formData.category_id}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.category_id}
+                        helperText={formErrors.category_id}
+                       
+                      >
+                        <MenuItem value={0}>هەڵبژێرە</MenuItem>
+                        {categories.map((category) => (
+                          <MenuItem key={category.id} value={category.id}>{category.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="زون"
+                        name="zone_id"
+                        select
+                        value={formData.zone_id}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.zone_id}
+                        helperText={formErrors.zone_id}
+                       
+                      >
+                        <MenuItem value={0}>هەڵبژێرە</MenuItem>
+                        {zones.map((zone) => (
+                          <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="شار"
+                        name="city_id"
+                        select
+                        value={formData.city_id}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.city_id}
+                        helperText={formErrors.city_id}
+                       
+                      >
+                        <MenuItem value={0}>هەڵبژێرە</MenuItem>
+                        {cities.map((city) => (
+                          <MenuItem key={city.id} value={city.id}>{city.name}</MenuItem>
+                        ))}
+                      </TextField>
+                    </Grid>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="ناوی کەفیل"
-                    name="kafyl_name"
-                    value={formData.kafyl_name}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.kafyl_name}
-                    helperText={formErrors.kafyl_name}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.kafyl_name && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'kafyl_name')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="مۆبایلی کەفیل"
-                    name="kafyl_phone"
-                    value={formData.kafyl_phone}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.kafyl_phone}
-                    helperText={formErrors.kafyl_phone}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.kafyl_phone && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'kafyl_phone')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
+                    {/* Group 2: Basic Info */}
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="کۆد"
+                        name="code"
+                        value={formData.code}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.code}
+                        helperText={formErrors.code}
+                     
+                        InputProps={{
+                          endAdornment: formData.code && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'code')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="ناو"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.name}
+                        helperText={formErrors.name}
+                       
+                        InputProps={{
+                          endAdornment: formData.name && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'name')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="جۆری مامەڵە"
+                        name="type"
+                        select
+                        value={formData.type}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.type}
+                        helperText={formErrors.type}
+                        required
+                       
+                      >
+                        <MenuItem value="هەردووکی">هەردووکی</MenuItem>
+                        <MenuItem value="کڕین">کڕین</MenuItem>
+                        <MenuItem value="فرۆشتن">فرۆشتن</MenuItem>
+                      </TextField>
+                    </Grid>
 
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    label="تێبینی"
-                    name="note"
-                    value={formData.note}
-                    onChange={handleChangeWithErrorReset}
-                    error={!!formErrors.note}
-                    helperText={formErrors.note}
-                    multiline
-                    rows={2}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: formData.note && (
-                        <InputAdornment position="end">
-                          <IconButton onClick={() => clearTextField(setFormData, 'note')} edge="end">
-                            <ClearIcon />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-              </Grid>
+                    {/* Group 3: Contact Info */}
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="مۆبایلی١"
+                        name="phone_1"
+                        value={formData.phone_1}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.phone_1}
+                        helperText={formErrors.phone_1}
+                       
+                        InputProps={{
+                          endAdornment: formData.phone_1 && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'phone_1')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="مۆبایلی٢"
+                        name="phone_2"
+                        value={formData.phone_2}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.phone_2}
+                        helperText={formErrors.phone_2}
+                     
+                        InputProps={{
+                          endAdornment: formData.phone_2 && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'phone_2')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="ناونیشان"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.address}
+                        helperText={formErrors.address}
+                       
+                        InputProps={{
+                          endAdornment: formData.address && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'address')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
 
-              {/* GPS Location Section */}
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={4}>
-                  <Button
-                    variant="contained"
-                    color="info"
-                    onClick={() => setMapOpen(true)}
-                    sx={{ mb: 2 }}
-                  >
-                    شوێن دیاری بکە (GPS)
-                  </Button>
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Latitude"
-                    name="latitude"
-                    value={formData.latitude}
-                    disabled
-                    sx={{ mb: 2 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Longitude"
-                    name="longitude"
-                    value={formData.longitude}
-                    disabled
-                    sx={{ mb: 2 }}
-                  />
-                </Grid>
-              </Grid>
+                    {/* Group 4: Loan Fields */}
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="حاڵەت"
+                        name="state"
+                        select
+                        value={formData.state}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.state}
+                        helperText={formErrors.state}
+                       
+                      >
+                        <MenuItem value="چالاک">چالاک</MenuItem>
+                        <MenuItem value="ناچالاک">ناچالاک</MenuItem>
+                      </TextField>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="مۆڵەتی قەرز"
+                        name="limit_loan_day"
+                        value={formData.limit_loan_day}
+                        onChange={(e) => handleChangeNumber(e, setFormData, setFormErrors)}
+                        error={!!formErrors.limit_loan_day}
+                        helperText={formErrors.limit_loan_day}
+                      
+                        InputProps={{
+                          endAdornment: formData.limit_loan_day && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'limit_loan_day')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="سنوری قەرز"
+                        name="limit_loan_price"
+                        value={formData.limit_loan_price}
+                        onChange={(e) => handleChangeNumber(e, setFormData, setFormErrors)}
+                        error={!!formErrors.limit_loan_price}
+                        helperText={formErrors.limit_loan_price}
+                     
+                        InputProps={{
+                          endAdornment: formData.limit_loan_price && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'limit_loan_price')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+
+                    {/* Group 5: Cobon & Guarantor */}
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="کۆبۆن"
+                        name="cobon"
+                        value={formData.cobon}
+                        onChange={(e) => handleChangeNumber(e, setFormData, setFormErrors)}
+                        error={!!formErrors.cobon}
+                        helperText={formErrors.cobon}
+                      
+                        InputProps={{
+                          endAdornment: formData.cobon && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'cobon')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="ناوی کەفیل"
+                        name="kafyl_name"
+                        value={formData.kafyl_name}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.kafyl_name}
+                        helperText={formErrors.kafyl_name}
+                       
+                        InputProps={{
+                          endAdornment: formData.kafyl_name && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'kafyl_name')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="مۆبایلی کەفیل"
+                        name="kafyl_phone"
+                        value={formData.kafyl_phone}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.kafyl_phone}
+                        helperText={formErrors.kafyl_phone}
+                  
+                        InputProps={{
+                          endAdornment: formData.kafyl_phone && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'kafyl_phone')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+
+                    {/* Note */}
+                    <Grid item xs={12}>
+                      <TextField
+                        fullWidth
+                        label="تێبینی"
+                        name="note"
+                        value={formData.note}
+                        onChange={handleChangeWithErrorReset}
+                        error={!!formErrors.note}
+                        helperText={formErrors.note}
+                        multiline
+                        rows={2}
+                    
+                        InputProps={{
+                          endAdornment: formData.note && (
+                            <InputAdornment position="end">
+                              <IconButton onClick={() => clearTextField(setFormData, 'note')} edge="end">
+                                <ClearIcon />
+                              </IconButton>
+                            </InputAdornment>
+                          ),
+                        }}
+                      />
+                    </Grid>
+
+                    {/* GPS & Location */}
+                    <Grid item xs={12} md={4}>
+                      <Button
+                        variant="contained"
+                        color="info"
+                        onClick={() => setMapOpen(true)}
+                       
+                      >
+                        شوێن دیاری بکە (GPS)
+                      </Button>
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Latitude"
+                        name="latitude"
+                        value={formData.latitude}
+                        disabled
+                   
+                      />
+                    </Grid>
+                    <Grid item xs={12} md={4}>
+                      <TextField
+                        fullWidth
+                        label="Longitude"
+                        name="longitude"
+                        value={formData.longitude}
+                        disabled
+                       
+                      />
+                    </Grid>
+                  </Grid>
+
+
 
               <Box marginTop={2}>
                 <Grid container spacing={2}>
