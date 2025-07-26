@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Grid, Card, Typography, TextField, Button, IconButton, InputAdornment,
+  Box, Grid, Card, Typography, TextField, IconButton, InputAdornment,
   Snackbar, Alert, CircularProgress, Table, TableHead, TableRow,
   TableCell, TableBody,TableFooter, TableContainer, Paper, Pagination
 } from '@mui/material';
@@ -10,6 +10,7 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
+import RegisterButton from '../../components/common/RegisterButton';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
 
@@ -20,7 +21,7 @@ function ItemCategoryManagment({ isDrawerOpen }) {
     search: '',
   };
 
-  const rowsPerPage = 5;
+  const rowsPerPage = 15;
 
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
@@ -211,9 +212,12 @@ function ItemCategoryManagment({ isDrawerOpen }) {
                   ),
                 }}
               />
-              <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
-                {loading ? 'Loading...' : selectedCategoryId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-              </Button>
+             <RegisterButton
+                    loading={loading}
+                    fullWidth
+                  >
+                    {selectedCategoryId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                  </RegisterButton>
             </form>
           </Card>
         </Grid>

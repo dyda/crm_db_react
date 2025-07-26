@@ -5,7 +5,6 @@ import {
   Typography,
   Box,
   TextField,
-  Button,
   IconButton,
   InputAdornment,
   Snackbar,
@@ -31,7 +30,9 @@ import {
   Search as SearchIcon,
 } from '@mui/icons-material';
 import TableSortLabel from '@mui/material/TableSortLabel';
-
+import RegisterButton from '../../components/common/RegisterButton';
+import ClearButton from '../../components/common/ClearButton';
+import ReportButton from '../../components/common/ReportButton';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import { getCurrentUserId } from '../Authentication/auth';
 import DateRangeSelector from '../../components/utils/DateRangeSelector';
@@ -57,7 +58,7 @@ function ExpensesManagment({ isDrawerOpen }) {
     search: '',
   };
 
-  const rowsPerPage = 10;
+  const rowsPerPage = 20;
 
   const [formData, setFormData] = useState(initialFormData);
   const [formErrors, setFormErrors] = useState({});
@@ -605,45 +606,37 @@ function ExpensesManagment({ isDrawerOpen }) {
 
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={8}>
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    color="success"
-                    disabled={loading}
-                  >
-                    {loading ? 'چاوەڕوان بە...' : selectedExpenseId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                  </Button>
+                  <RegisterButton
+      loading={loading}
+      fullWidth
+    >
+      {selectedExpenseId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+    </RegisterButton>
                 </Grid>
                 <Grid item xs={4}>
-                  <Button
-                    type="button"
-                    fullWidth
-                    variant="contained"
-                    color="info"
-                    onClick={() => {
-                      setFormData({ ...initialFormData, user_id: getCurrentUserId() });
-                      setFormErrors({});
-                      setSelectedExpenseId(null);
-                      setErrorMessage('');
-                      setSearch('');
-                      setFilterBranchId('');
-                      setFilterEmployeeId('');
-                      setFilterCategoryId('');
-                      setCurrentPage(1);
-                      fetchExpenses(
-                        '', // search
-                        filterDateRange, // keep the current date range
-                        '', // branch
-                        '', // employee
-                        '', // category
-                        1 // page
-                      );
-                      fetchTotalSumByCurrency();
-                    }}
-                  >
-                    پاکردنەوە
-                  </Button>
+                 <ClearButton
+                      onClick={() => {
+                        setFormData({ ...initialFormData, user_id: getCurrentUserId() });
+                        setFormErrors({});
+                        setSelectedExpenseId(null);
+                        setErrorMessage('');
+                        setSearch('');
+                        setFilterBranchId('');
+                        setFilterEmployeeId('');
+                        setFilterCategoryId('');
+                        setCurrentPage(1);
+                        fetchExpenses(
+                          '', // search
+                          filterDateRange, // keep the current date range
+                          '', // branch
+                          '', // employee
+                          '', // category
+                          1 // page
+                        );
+                        fetchTotalSumByCurrency();
+                      }}
+                      fullWidth
+                    />
                 </Grid>
               </Grid>
             </form>
@@ -741,14 +734,12 @@ function ExpensesManagment({ isDrawerOpen }) {
                     <DateRangeSelector value={filterDateRange} onChange={handleDateRangeChange} />
                   </Grid>
                   <Grid item xs={12} md={3}>
-                    <Button
-                      variant="contained"
-                      color="secondary"
+                    <ReportButton
                       onClick={handleOpenPdfPreview}
-                      sx={{ minWidth: '100%' }}
+                      fullWidth
                     >
                       ڕاپۆرت
-                    </Button>
+                    </ReportButton>
                   </Grid>
                 </Grid>
               </Box>

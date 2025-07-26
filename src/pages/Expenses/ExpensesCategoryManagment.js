@@ -5,7 +5,6 @@ import {
   Typography,
   Box,
   TextField,
-  Button,
   IconButton,
   InputAdornment,
   Snackbar,
@@ -30,6 +29,7 @@ import {
 } from '@mui/icons-material';
 import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
+import RegisterButton from '../../components/common/RegisterButton';
 
 function ExpensesCategoryManagment({ isDrawerOpen }) {
   const initialFormData = { name: '', description: '' };
@@ -214,15 +214,13 @@ function ExpensesCategoryManagment({ isDrawerOpen }) {
                   onChange={(e) => handleChange(e, setFormData)}
                   sx={{ marginBottom: 2 }}
                 />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="success"
-                  fullWidth
-                  disabled={loading}
-                >
-                  {loading ? 'Loading...' : selectedCategoryId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                </Button>
+                <RegisterButton
+                      loading={loading}
+                      fullWidth
+                    >
+                      {selectedCategoryId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                    </RegisterButton>
+
               </form>
             </Box>
           </Card>

@@ -5,7 +5,6 @@ import {
   Typography,
   Box,
   TextField,
-  Button,
   IconButton,
   InputAdornment,
   Snackbar,
@@ -28,6 +27,7 @@ import {
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { clearTextField, handleChange, resetForm } from '../../components/utils/formUtils';
+import RegisterButton from '../../components/common/RegisterButton';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 
 function CurrencyManagement({ isDrawerOpen }) {
@@ -37,7 +37,7 @@ function CurrencyManagement({ isDrawerOpen }) {
     exchange_rate: '',
     is_base: false,
   };
-  const rowsPerPage = 5;
+  const rowsPerPage = 10;
 
   // States
   const [formData, setFormData] = useState(initialFormData);
@@ -243,15 +243,13 @@ function CurrencyManagement({ isDrawerOpen }) {
                   label="دراوی بنچینەیی"
                   sx={{ marginBottom: 2 }}
                 />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="success"
+                <RegisterButton
+                  loading={loading}
                   fullWidth
-                  disabled={loading}
                 >
-                  {loading ? 'Loading...' : selectedCurrencyId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                </Button>
+                  {selectedCurrencyId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                </RegisterButton>
+
               </form>
             </Box>
           </Card>

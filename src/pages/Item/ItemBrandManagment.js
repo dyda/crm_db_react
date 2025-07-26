@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Grid, Card, Typography, TextField, Button, IconButton, InputAdornment,
+  Box, Grid, Card, Typography, TextField, IconButton, InputAdornment,
   Snackbar, Alert, CircularProgress, Table, TableHead, TableRow,
   TableCell, TableBody, TableFooter, TableContainer, Paper, Pagination
 } from '@mui/material';
@@ -10,6 +10,7 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
+import RegisterButton from '../../components/common/RegisterButton';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
 
@@ -173,47 +174,52 @@ function ItemBrandManagment({ isDrawerOpen }) {
             <Typography variant="h6" gutterBottom>
               {selectedBrandId ? 'گۆڕینی براند' : 'زیادکردنی براند'}
             </Typography>
-            <form onSubmit={handleSubmit}>
-              <TextField
-                fullWidth
-                label="ناوی براند"
-                name="name"
-                value={formData.name}
-                onChange={handleChangeWithErrorReset}
-                error={!!formErrors.name}
-                helperText={formErrors.name}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: formData.name && (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => clearSelectField('name')}>
-                        <ClearIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <TextField
-                fullWidth
-                label="وەسف"
-                name="description"
-                value={formData.description}
-                onChange={handleChangeWithErrorReset}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  endAdornment: formData.description && (
-                    <InputAdornment position="end">
-                      <IconButton onClick={() => clearSelectField('description')}>
-                        <ClearIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-              <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
-                {loading ? 'Loading...' : selectedBrandId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-              </Button>
-            </form>
+           <form onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label="ناوی براند"
+              name="name"
+              value={formData.name}
+              onChange={handleChangeWithErrorReset}
+              error={!!formErrors.name}
+              helperText={formErrors.name}
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: formData.name && (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => clearSelectField('name')}>
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              fullWidth
+              label="وەسف"
+              name="description"
+              value={formData.description}
+              onChange={handleChangeWithErrorReset}
+              sx={{ mb: 2 }}
+              InputProps={{
+                endAdornment: formData.description && (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => clearSelectField('description')}>
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <RegisterButton
+              type="submit"
+              fullWidth
+              loading={loading}
+            >
+              {selectedBrandId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+            </RegisterButton>
+          </form>
+
           </Card>
         </Grid>
 

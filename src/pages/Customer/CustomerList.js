@@ -9,7 +9,6 @@ import {
   TableRow,
   TableFooter,
   Paper,
-  Button,
   IconButton,
   Pagination,
   TextField,
@@ -25,7 +24,6 @@ import {
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Add as AddIcon,
   ArrowUpward,
   ArrowDownward,
   Clear as ClearIcon,
@@ -34,6 +32,7 @@ import axiosInstance from '../../components/service/axiosInstance';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import ReportButton from '../../components/common/ReportButton';
 import ClearButton from '../../components/common/ClearButton';
+import AddButton from '../../components/common/AddButton';
 import { useNavigate } from 'react-router-dom';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import CustomerDialogInfo from '../../components/utils/CustomerDialogInfo';
@@ -316,15 +315,10 @@ const handleOpenCustomerInfoPDF = async () => {
           لیستی کڕیارەکان
         </Typography>
         <Stack direction="row" spacing={2}>
-          <Button
-          fullWidth
-            variant="contained"
-            color='success'
-            startIcon={<AddIcon />}
+          <AddButton
             onClick={handleAddCustomer}
-          >
-            زیادکردن
-          </Button>
+           fullWidth
+          />
           <ReportButton
             onClick={handleOpenCustomerInfoPDF} 
            fullWidth

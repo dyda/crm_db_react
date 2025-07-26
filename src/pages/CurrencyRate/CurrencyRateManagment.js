@@ -5,7 +5,6 @@ import {
   Typography,
   Box,
   TextField,
-  Button,
   IconButton,
   Snackbar,
   Alert,
@@ -21,6 +20,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import RegisterButton from '../../components/common/RegisterButton';
 import {resetForm } from '../../components/utils/formUtils';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 
@@ -279,15 +279,14 @@ function CurrencyRateManagment({ isDrawerOpen }) {
                   sx={{ marginBottom: 2 }}
                   InputLabelProps={{ shrink: true }}
                 />
-                <Button
-                  type="submit"
-                  variant="contained"
-                  color="success"
-                  fullWidth
-                  disabled={loading}
-                >
-                  {loading ? 'Loading...' : selectedRateId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                </Button>
+  
+                <RegisterButton
+                    loading={loading}
+                    fullWidth
+                  >
+                    {selectedRateId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                  </RegisterButton>
+
               </form>
             </Box>
           </Card>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Grid, Card, Typography, TextField, Button, IconButton, InputAdornment,
+  Box, Grid, Card, Typography, TextField, IconButton, InputAdornment,
   Snackbar, Alert, CircularProgress, Table, TableHead, TableRow,
   TableCell, TableBody, TableFooter, TableContainer, Paper, Pagination
 } from '@mui/material';
@@ -12,6 +12,7 @@ import {
 } from '@mui/icons-material';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
+import RegisterButton from '../../components/common/RegisterButton';
 
 function ItemTypePriceManagment({ isDrawerOpen }) {
   const initialFormData = {
@@ -189,9 +190,12 @@ function ItemTypePriceManagment({ isDrawerOpen }) {
                   ),
                 }}
               />
-              <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
-                {loading ? 'Loading...' : selectedTypeId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-              </Button>
+             <RegisterButton
+                loading={loading}
+                fullWidth
+              >
+                {selectedTypeId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+              </RegisterButton>
             </form>
           </Card>
         </Grid>

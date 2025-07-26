@@ -14,6 +14,9 @@ import {
 import TableSortLabel from '@mui/material/TableSortLabel';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
+import RegisterButton from '../../components/common/RegisterButton';
+import ClearButton from '../../components/common/ClearButton';
+import ReportButton from '../../components/common/ReportButton';
 import ItemPriceModal from './ItemPriceModal';
 import ItemQuantityModal from './ItemQuantityModal';
 import DialogPdf from '../../components/utils/DialogPdf';
@@ -378,29 +381,27 @@ function ItemManagment({ isDrawerOpen }) {
         />
       </Grid>
       <Grid item xs={12} sm={6} md={4} sx={{ display: 'flex', alignItems: 'center' }}>
-        <Button
-          variant="contained"
-          color="secondary"
-          fullWidth
-          onClick={async () => {
-            const params = {
-              category_id: filterCategoryId,
-              brand_id: filterBrandId,
-              isService: filterIsService,
-              barcode: filterBarcode,
-              name: formData.search,
-              sortBy,
-              sortOrder,
-              page: 1,
-              pageSize: 10000
-            };
-            const res = await axiosInstance.get('/item/filter', { params });
-            setReportItems(res.data.results || []);
-            setOpenPdfPreview(true);
-          }}
-        >
-          ڕاپۆرت
-        </Button>
+        <ReportButton
+      onClick={async () => {
+        const params = {
+          category_id: filterCategoryId,
+          brand_id: filterBrandId,
+          isService: filterIsService,
+          barcode: filterBarcode,
+          name: formData.search,
+          sortBy,
+          sortOrder,
+          page: 1,
+          pageSize: 10000
+        };
+        const res = await axiosInstance.get('/item/filter', { params });
+        setReportItems(res.data.results || []);
+        setOpenPdfPreview(true);
+      }}
+      fullWidth
+    >
+      ڕاپۆرت
+    </ReportButton>
       </Grid>
     </Grid>
   );
@@ -571,38 +572,31 @@ function ItemManagment({ isDrawerOpen }) {
               </Box>
               <Grid container spacing={2} sx={{ mt: 1 }}>
                 <Grid item xs={9}>
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    color="success"
-                    disabled={loading}
-                  >
-                    {loading ? 'چاوەڕوان بە...' : selectedItemId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-                  </Button>
+                   <RegisterButton
+                        loading={loading}
+                        onClick={handleSubmit}
+                        fullWidth
+                      >
+                        {selectedItemId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+                      </RegisterButton>
                 </Grid>
                 <Grid item xs={3}>
-                  <Button
-                    type="button"
-                    fullWidth
-                    variant="contained"
-                    color="info"
-                    onClick={() => {
-                      setFormData(initialFormData);
-                      setFormErrors({});
-                      setSelectedItemId(null);
-                      setErrorMessage('');
-                      setImageFile(null);
-                      setFilterCategoryId('');
-                      setFilterBrandId('');
-                      setFilterIsService('');
-                      setFilterBarcode('');
-                      setCurrentPage(1);
-                      fetchItems(1, rowsPerPage, sortBy, sortOrder);
-                    }}
-                  >
-                    پاکردنەوە
-                  </Button>
+                   <ClearButton
+                          onClick={() => {
+                            setFormData(initialFormData);
+                            setFormErrors({});
+                            setSelectedItemId(null);
+                            setErrorMessage('');
+                            setImageFile(null);
+                            setFilterCategoryId('');
+                            setFilterBrandId('');
+                            setFilterIsService('');
+                            setFilterBarcode('');
+                            setCurrentPage(1);
+                            fetchItems(1, rowsPerPage, sortBy, sortOrder);
+                          }}
+                          fullWidth
+                        />
                 </Grid>
               </Grid>
             </form>

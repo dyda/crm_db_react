@@ -11,7 +11,7 @@ function ReportButton({ onClick, children = 'چاپکردن', ...props }) {
         color="secondary"
         startIcon={<PictureAsPdfIcon />}
         onClick={onClick}
-        sx={{ minWidth: 140, fontWeight: 'bold', letterSpacing: 1 }}
+        sx={{ minWidth: 140, fontWeight: 'normal', letterSpacing: 1 }}
         {...props}
       >
         {children}

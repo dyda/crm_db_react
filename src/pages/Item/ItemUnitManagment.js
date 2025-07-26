@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, Grid, Card, Typography, TextField, Button, IconButton, InputAdornment,
+  Box, Grid, Card, Typography, TextField, IconButton, InputAdornment,
   Snackbar, Alert, CircularProgress, Table, TableHead, TableRow,
   TableCell, TableBody, TableFooter, TableContainer, Paper, Pagination
 } from '@mui/material';
@@ -10,6 +10,8 @@ import {
   Delete as DeleteIcon,
   Search as SearchIcon
 } from '@mui/icons-material';
+import RegisterButton from '../../components/common/RegisterButton';
+
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
 
@@ -240,9 +242,12 @@ function ItemUnitManagment({ isDrawerOpen }) {
                   ),
                 }}
               />
-              <Button type="submit" fullWidth variant="contained" color="success" disabled={loading}>
-                {loading ? 'Loading...' : selectedUnitId ? 'نوێکردنەوە' : 'تۆمارکردن'}
-              </Button>
+                <RegisterButton
+                loading={loading}
+                fullWidth
+              >
+                {selectedUnitId ? 'نوێکردنەوە' : 'تۆمارکردن'}
+              </RegisterButton>
             </form>
           </Card>
         </Grid>
