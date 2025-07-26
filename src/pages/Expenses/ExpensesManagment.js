@@ -250,6 +250,7 @@ function ExpensesManagment({ isDrawerOpen }) {
     const allExpenses = await fetchAllExpensesForReport();
     setReportExpenses(allExpenses);
     setOpenPdfPreview(true);
+
   };
 
   const handleSearchChange = (e) => {

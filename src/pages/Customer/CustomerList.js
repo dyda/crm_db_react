@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Table,
@@ -16,13 +16,11 @@ import {
   InputAdornment,
   Snackbar,
   Alert,
+  CircularProgress,
   Typography,
   MenuItem,
   Grid,
   Stack,
-  Select,
-  FormControl,
-  InputLabel,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -31,81 +29,175 @@ import {
   ArrowUpward,
   ArrowDownward,
   Clear as ClearIcon,
-  FilterList as FilterListIcon,
 } from '@mui/icons-material';
 import axiosInstance from '../../components/service/axiosInstance';
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import ReportButton from '../../components/common/ReportButton';
+import ClearButton from '../../components/common/ClearButton';
 import { useNavigate } from 'react-router-dom';
-
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import CustomerDialogInfo from '../../components/utils/CustomerDialogInfo';
+import CustomerInfoPDF from '../../components/reports/customer/customerInfoPDF';
+import DialogPdf from '../../components/utils/DialogPdf';
+import { useCompanyInfo } from '../../hooks/useCompanyInfo';
+// .
 function CustomerList({ isDrawerOpen }) {
   const navigate = useNavigate();
   const [customers, setCustomers] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterZoneId, setFilterZoneId] = useState('');
+  const [filterCategoryId, setFilterCategoryId] = useState('');
+  const [filterCityId, setFilterCityId] = useState('');
+  const [filterMandubId, setFilterMandubId] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterState, setFilterState] = useState('');
+  const [zones, setZones] = useState([]);
+  const [mandub, setMandub] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [openDialog, setOpenDialog] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState(null);
   const [sortBy, setSortBy] = useState('id');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [filterState, setFilterState] = useState('');
-  const [filterType, setFilterType] = useState('');
-  const [filterZone, setFilterZone] = useState('');
-  const [filterCategory, setFilterCategory] = useState('');
-  const [zones, setZones] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const rowsPerPage = 10;
+  const [totalCount, setTotalCount] = useState(0);
+  const [currencies, setCurrencies] = useState([]);
+  const [priceTypes, setPriceTypes] = useState([]);
+  const [filterCurrencyId, setFilterCurrencyId] = useState('');
+  const [filterPriceTypeId, setFilterPriceTypeId] = useState('0');
+  const [showDialog, setShowDialog] = useState(false);
+  const [showCustomer, setShowCustomer] = useState(null);
+  const [showLoading, setShowLoading] = useState(false);
+  const [filterLoanPositive, setFilterLoanPositive] = useState(false);
+  const [filterLoanNegative, setFilterLoanNegative] = useState(false);
+  const [filterLoanZero, setFilterLoanZero] = useState(false);
+  const [openCustomerInfoPDF, setOpenCustomerInfoPDF] = useState(false);
+  const [reportCustomers, setReportCustomers] = useState([]);
+  const { company, fetchCompanyInfo } = useCompanyInfo();
+  const rowsPerPage = 20;
 
-  // Fetch customers
+  // Fetch filter dropdown data
   useEffect(() => {
-    fetchCustomers(currentPage, rowsPerPage, sortBy, sortOrder, searchQuery, filterState, filterType, filterZone, filterCategory);
+    const fetchDropdowns = async () => {
+      try {
+        const [
+          zoneRes,
+          categoryRes,
+          cityRes,
+          mandubRes,
+          currencyRes,
+          priceTypeRes,
+        ] = await Promise.all([
+          axiosInstance.get('/zone/index'),
+          axiosInstance.get('/customer-category/index'),
+          axiosInstance.get('/city/index'),
+          axiosInstance.get('/user/index'),
+          axiosInstance.get('/currency/index'),
+          axiosInstance.get('/item-price-type/index'),
+        ]);
+        setZones(zoneRes.data || []);
+        setCategories(categoryRes.data || []);
+        setCities(cityRes.data || []);
+        setMandub(mandubRes.data || []);
+        setCurrencies(currencyRes.data || []);
+        setPriceTypes(priceTypeRes.data || []);
+        fetchCompanyInfo();
+      } catch {
+        // ignore dropdown errors
+      }
+    };
+    fetchDropdowns();
     // eslint-disable-next-line
-  }, [currentPage, sortBy, sortOrder, searchQuery, filterState, filterType, filterZone, filterCategory]);
-
-  useEffect(() => {
-    axiosInstance.get('/zone/index')
-      .then((response) => {
-        setZones(Array.isArray(response.data) ? response.data : response.data.results || []);
-      })
-      .catch(() => setZones([]));
-    axiosInstance.get('/customer-category/index')
-      .then((response) => {
-        setCategories(Array.isArray(response.data) ? response.data : response.data.results || []);
-      })
-      .catch(() => setCategories([]));
   }, []);
 
+  // Fetch customers with filters, sort, pagination
   const fetchCustomers = async (
-    page = 1,
+    page = currentPage,
     pageSize = rowsPerPage,
     sortField = sortBy,
-    sortDirection = sortOrder,
-    search = '',
-    state = '',
-    type = '',
-    zone = '',
-    category = ''
+    sortDirection = sortOrder
   ) => {
+    setIsLoading(true);
     try {
       const params = {
         page,
         pageSize,
         sortBy: sortField,
         sortOrder: sortDirection,
-        name: search,
-        state,
-        type,
-        zone_id: zone,
-        category_id: category,
+        search: searchQuery,
+        zone_id: filterZoneId,
+        category_id: filterCategoryId,
+        city_id: filterCityId,
+        mandub_id: filterMandubId,
+        type: filterType,
+        state: filterState,
+        currency_id: filterCurrencyId ? Number(filterCurrencyId) : '',
+        price_type_id: Number(filterPriceTypeId),
+        loan_positive: filterLoanPositive ? true : undefined,
+        loan_negative: filterLoanNegative ? true : undefined,
+        loan_zero: filterLoanZero ? true : undefined,
       };
-      const response = await axiosInstance.get('/customer/index', { params });
-      setCustomers(response.data || []);
+      const response = await axiosInstance.get('/customer/filter', { params });
+
+      setCustomers(Array.isArray(response.data) ? response.data : response.data.results || []);
+      setTotalCount(response.data.total || response.data.length || 0);
     } catch (error) {
       setSnackbarMessage('هەڵە ڕوویدا لە بارکردنی زانیاری');
       setSnackbarOpen(true);
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const fetchAllCustomersForReport = async () => {
+  try {
+    const params = {
+      // all filters here
+      search: searchQuery,
+      zone_id: filterZoneId,
+      category_id: filterCategoryId,
+      city_id: filterCityId,
+      mandub_id: filterMandubId,
+      type: filterType,
+      state: filterState,
+      currency_id: filterCurrencyId ? Number(filterCurrencyId) : '',
+      price_type_id: Number(filterPriceTypeId),
+     loan_positive: filterLoanPositive ? true : undefined,
+     loan_negative: filterLoanNegative ? true : undefined,
+     loan_zero: filterLoanZero ? true : undefined,
+      page: 1,
+      pageSize: 10000, // large number to get all
+    };
+    const res = await axiosInstance.get('/customer/filter', { params });
+    return Array.isArray(res.data) ? res.data : res.data.results || [];
+  } catch {
+    return [];
+  }
+};
+
+  useEffect(() => {
+    fetchCustomers(currentPage, rowsPerPage, sortBy, sortOrder);
+    // eslint-disable-next-line
+  }, [
+    searchQuery,
+    filterZoneId,
+    filterCategoryId,
+    filterCityId,
+    filterMandubId,
+    filterType,
+    filterState,
+    filterCurrencyId,
+    filterPriceTypeId,
+    filterLoanPositive,
+    filterLoanNegative,
+    filterLoanZero,
+    currentPage,
+    sortBy,
+    sortOrder,
+  ]);
 
   const handleSort = (key) => {
     setSortBy(key);
@@ -143,30 +235,111 @@ function CustomerList({ isDrawerOpen }) {
       setSnackbarOpen(true);
     }
   };
+const handleOpenCustomerInfoPDF = async () => {
+  const allCustomers = await fetchAllCustomersForReport();
+  setReportCustomers(allCustomers);
+  setOpenCustomerInfoPDF(true);
+};
 
-  // Calculate sums
-  const totalCount = customers.length;
-  const totalPositiveLoan = customers.reduce(
-    (sum, c) => sum + (Number(c.loan) > 0 ? Number(c.loan) : 0),
-    0
-  );
-  const totalNegativeLoan = customers.reduce(
-    (sum, c) => sum + (Number(c.loan) < 0 ? Number(c.loan) : 0),
-    0
-  );
+  // Handler to open dialog and fetch customer details
+  const handleShowCustomer = async (id) => {
+    setShowLoading(true);
+    setShowDialog(true);
+    try {
+      const res = await axiosInstance.get(`/customer/show/${id}`);
+      setShowCustomer(res.data);
+    } catch {
+      setShowCustomer(null);
+    } finally {
+      setShowLoading(false);
+    }
+  };
 
-  // Pagination
-  const paginatedCustomers = customers.slice(
-    (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
-  );
+    const handleClearAllFilters = () => {
+    setSearchQuery('');
+    setFilterZoneId('');
+    setFilterCategoryId('');
+    setFilterCityId('');
+    setFilterMandubId('');
+    setFilterType('');
+    setFilterState('');
+    setFilterCurrencyId('');
+    setFilterPriceTypeId('0');
+    setFilterLoanPositive(false);
+    setFilterLoanNegative(false);
+    setFilterLoanZero(false);
+    setCurrentPage(1);
+  };
 
-  // Responsive filter section
-  const filterSection = (
-    <Box sx={{ mb: 2 }}>
-      <Paper sx={{ p: { xs: 2, md: 3 }, mb: 2 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} md={3}>
+
+   // Professional loan summary by currency
+  const loanSummaryByCurrency = useMemo(() => {
+    const summary = {};
+    customers.forEach((c) => {
+      const currencyId = c.currency_id;
+      const currencyName = currencies.find(cur => cur.id === currencyId)?.name || currencyId || '-';
+      const loan = Number(c.loan) || 0;
+      if (!summary[currencyId]) {
+        summary[currencyId] = {
+          currencyName,
+          positive: 0,
+          negative: 0,
+        };
+      }
+      if (loan > 0) {
+        summary[currencyId].positive += loan;
+      } else if (loan < 0) {
+        summary[currencyId].negative += loan;
+      }
+    });
+    return summary;
+  }, [customers, currencies]);
+
+  return (
+    <Box
+      sx={{
+        marginRight: isDrawerOpen ? '250px' : '0',
+        transition: 'margin-right 0.3s ease-in-out',
+        px: 2,
+        py: 3,
+      }}
+    >
+      {/* Header */}
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        spacing={2}
+        mb={3}
+      >
+        <Typography variant="h5" fontWeight="bold" color="primary.main">
+          لیستی کڕیارەکان
+        </Typography>
+        <Stack direction="row" spacing={2}>
+          <Button
+          fullWidth
+            variant="contained"
+            color='success'
+            startIcon={<AddIcon />}
+            onClick={handleAddCustomer}
+          >
+            زیادکردن
+          </Button>
+          <ReportButton
+            onClick={handleOpenCustomerInfoPDF} 
+           fullWidth
+          />
+          <ClearButton onClick={handleClearAllFilters} fullWidth>
+            پاکردنەوە
+          </ClearButton>
+
+        </Stack>
+      </Stack>
+
+      {/* Filter Section */}
+      <Box sx={{ mb: 2 }}>
+        <Grid container spacing={2}>
+          <Grid item xs={6} md={2}>
             <TextField
               fullWidth
               label="گەڕان"
@@ -185,203 +358,299 @@ function CustomerList({ isDrawerOpen }) {
             />
           </Grid>
           <Grid item xs={6} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>حاڵەت</InputLabel>
-              <Select
-                label="حاڵەت"
-                value={filterState}
-                onChange={e => { setFilterState(e.target.value); setCurrentPage(1); }}
-                startAdornment={<FilterListIcon fontSize="small" />}
-              >
-                <MenuItem value="">هەموو</MenuItem>
-                <MenuItem value="چالاک">چالاک</MenuItem>
-                <MenuItem value="ناچالاک">ناچالاک</MenuItem>
-              </Select>
-            </FormControl>
+            <TextField
+              select
+              fullWidth
+              label="زۆن"
+              value={filterZoneId}
+              onChange={e => { setFilterZoneId(e.target.value); setCurrentPage(1); }}
+            >
+              <MenuItem value="">هەموو</MenuItem>
+              {zones.map((zone) => (
+                <MenuItem key={zone.id} value={zone.id}>
+                  {zone.name}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
           <Grid item xs={6} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>جۆر</InputLabel>
-              <Select
-                label="جۆر"
-                value={filterType}
-                onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
-                startAdornment={<FilterListIcon fontSize="small" />}
-              >
-                <MenuItem value="">هەموو</MenuItem>
-                <MenuItem value="هەردووکی">هەردووکی</MenuItem>
-                <MenuItem value="کڕین">کڕین</MenuItem>
-                <MenuItem value="فرۆشتن">فرۆشتن</MenuItem>
-              </Select>
-            </FormControl>
+            <TextField
+              select
+              fullWidth
+              label="گرووپ"
+              value={filterCategoryId}
+              onChange={e => { setFilterCategoryId(e.target.value); setCurrentPage(1); }}
+            >
+              <MenuItem value="">هەموو</MenuItem>
+              {categories.map((cat) => (
+                <MenuItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
           <Grid item xs={6} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>زون</InputLabel>
-              <Select
-                label="زون"
-                value={filterZone}
-                onChange={e => { setFilterZone(e.target.value); setCurrentPage(1); }}
-                startAdornment={<FilterListIcon fontSize="small" />}
-              >
-                <MenuItem value="">هەموو</MenuItem>
-                {zones.map((zone) => (
-                  <MenuItem key={zone.id} value={zone.id}>{zone.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              select
+              fullWidth
+              label="شار"
+              value={filterCityId}
+              onChange={e => { setFilterCityId(e.target.value); setCurrentPage(1); }}
+            >
+              <MenuItem value="">هەموو</MenuItem>
+              {cities.map((city) => (
+                <MenuItem key={city.id} value={city.id}>
+                  {city.name}
+                </MenuItem>
+              ))}
+            </TextField>
           </Grid>
-          <Grid item xs={6} md={3}>
-            <FormControl fullWidth>
-              <InputLabel>گرووپ</InputLabel>
-              <Select
-                label="گرووپ"
-                value={filterCategory}
-                onChange={e => { setFilterCategory(e.target.value); setCurrentPage(1); }}
-                startAdornment={<FilterListIcon fontSize="small" />}
+          <Grid item xs={6} md={2}>
+            <TextField
+              select
+              fullWidth
+              label="مەندووب"
+              value={filterMandubId}
+              onChange={e => { setFilterMandubId(e.target.value); setCurrentPage(1); }}
+            >
+              <MenuItem value="">هەموو</MenuItem>
+              {mandub.map((m) => (
+                <MenuItem key={m.id} value={m.id}>
+                  {m.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField
+              select
+              fullWidth
+              label="جۆر"
+              value={filterType}
+              onChange={e => { setFilterType(e.target.value); setCurrentPage(1); }}
+            >
+              <MenuItem value="">هەموو</MenuItem>
+              <MenuItem value="هەردووکی">هەردووکی</MenuItem>
+              <MenuItem value="کڕین">کڕین</MenuItem>
+              <MenuItem value="فرۆشتن">فرۆشتن</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField
+              select
+              fullWidth
+              label="دراو"
+              value={filterCurrencyId}
+              onChange={e => { setFilterCurrencyId(e.target.value); setCurrentPage(1); }}
+            >
+              <MenuItem value="">هەموو</MenuItem>
+              {currencies.map((c) => (
+                <MenuItem key={c.id} value={c.id}>
+                  {c.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+          <Grid item xs={6} md={2}>
+            <TextField
+              select
+              fullWidth
+              label="جۆری نرخ"
+              value={filterPriceTypeId}
+              onChange={e => { setFilterPriceTypeId(e.target.value); setCurrentPage(1); }}
+            >
+              <MenuItem value="0">هەموو</MenuItem>
+              {priceTypes.map((p) => (
+                <MenuItem key={p.id} value={String(p.id)}>
+                  {p.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
+          <Grid item xs={6} md={2}>
+              <TextField
+                select
+                fullWidth
+                label="قەرز"
+                value={
+                  filterLoanPositive
+                    ? 'positive'
+                    : filterLoanNegative
+                    ? 'negative'
+                    : filterLoanZero
+                    ? 'zero'
+                    : ''
+                }
+                onChange={e => {
+                  setFilterLoanPositive(e.target.value === 'positive');
+                  setFilterLoanNegative(e.target.value === 'negative');
+                  setFilterLoanZero(e.target.value === 'zero');
+                  setCurrentPage(1);
+                }}
               >
                 <MenuItem value="">هەموو</MenuItem>
-                {categories.map((cat) => (
-                  <MenuItem key={cat.id} value={cat.id}>{cat.name}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+                <MenuItem value="positive">قەرزەکانم</MenuItem>
+                <MenuItem value="negative">قەرزی خەڵک</MenuItem>
+                <MenuItem value="zero">قەرزی سفرە</MenuItem>
+              </TextField>
+            </Grid>    
+
+          <Grid item xs={6} md={2}>
+            <TextField
+              select
+              fullWidth
+              label="حاڵەت"
+              value={filterState}
+              onChange={e => { setFilterState(e.target.value); setCurrentPage(1); }}
+            >
+              <MenuItem value="">هەموو</MenuItem>
+              <MenuItem value="چالاک">چالاک</MenuItem>
+              <MenuItem value="ناچالاک">ناچالاک</MenuItem>
+            </TextField>
           </Grid>
         </Grid>
-      </Paper>
-    </Box>
-  );
-
-  return (
-    <Box
-      sx={{
-        marginRight: isDrawerOpen ? '250px' : '0',
-        transition: 'margin-right 0.3s ease-in-out',
-        px: { xs: 1, md: 2 },
-        py: { xs: 2, md: 3 },
-      }}
-    >
-      {/* Header */}
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        justifyContent="space-between"
-        alignItems={{ xs: 'flex-start', md: 'center' }}
-        spacing={2}
-        mb={3}
-      >
-        <Typography variant="h5" fontWeight="bold" color="primary.main">
-          لیستی کڕیارەکان
-        </Typography>
-        <Stack direction="row" spacing={2}>
-          <ReportButton
-            onClick={() => {}}
-            sx={{ borderRadius: 2, fontWeight: 'bold', px: 3, py: 1 }}
-          />
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAddCustomer}
-            sx={{ borderRadius: 2, fontWeight: 'bold', px: 3, py: 1 }}
-          >
-            زیادکردن
-          </Button>
-        </Stack>
-      </Stack>
-
-      {/* Professional Filter Section */}
-      {filterSection}
+      </Box>
 
       {/* Table */}
-      <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
-        <Table>
-          <TableHead>
+      {isLoading ? (
+        <Box display="flex" justifyContent="center" mt={5}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+          <Table>
+        <TableHead>
             <TableRow>
               <TableCell onClick={() => handleSort('id')} sx={{ cursor: 'pointer' }}>
                 ID {getSortIcon('id')}
+              </TableCell>
+              <TableCell onClick={() => handleSort('category_id')} sx={{ cursor: 'pointer' }}>
+                گرووپ {getSortIcon('category_id')}
+              </TableCell>
+              <TableCell onClick={() => handleSort('code')} sx={{ cursor: 'pointer' }}>
+                کۆد {getSortIcon('code')}
               </TableCell>
               <TableCell onClick={() => handleSort('name')} sx={{ cursor: 'pointer' }}>
                 ناو {getSortIcon('name')}
               </TableCell>
               <TableCell>مۆبایل١</TableCell>
-              <TableCell>مۆبایل٢</TableCell>
-              <TableCell>جۆر</TableCell>
-              <TableCell>حاڵەت</TableCell>
-              <TableCell>شار</TableCell>
-              <TableCell>زون</TableCell>
-              <TableCell>گرووپ</TableCell>
-              <TableCell>کۆد</TableCell>
-              <TableCell>ناوی کەفیل</TableCell>
-              <TableCell>مۆبایلی کەفیل</TableCell>
+              <TableCell onClick={() => handleSort('type')} sx={{ cursor: 'pointer' }}>
+                ج.مامەڵە {getSortIcon('type')}
+              </TableCell>
+              <TableCell onClick={() => handleSort('city_id')} sx={{ cursor: 'pointer' }}>
+                شار {getSortIcon('city_id')}
+              </TableCell>
+              <TableCell onClick={() => handleSort('zone_id')} sx={{ cursor: 'pointer' }}>
+                زۆن {getSortIcon('zone_id')}
+              </TableCell>
               <TableCell>ناونیشان</TableCell>
-              <TableCell>قەرز</TableCell>
-              <TableCell>تێبینی</TableCell>
+              <TableCell onClick={() => handleSort('mandub_id')} sx={{ cursor: 'pointer' }}>
+                مەندووب {getSortIcon('mandub_id')}
+              </TableCell>
+              <TableCell onClick={() => handleSort('currency_id')} sx={{ cursor: 'pointer' }}>
+                دراو {getSortIcon('currency_id')}
+              </TableCell>
+              <TableCell onClick={() => handleSort('loan')} sx={{ cursor: 'pointer' }}>
+                قەرز {getSortIcon('loan')}
+              </TableCell>
               <TableCell align="center">کردار</TableCell>
             </TableRow>
           </TableHead>
-          <TableBody>
-            {paginatedCustomers.map((customer) => (
-              <TableRow key={customer.id} hover>
-                <TableCell>{customer.id}</TableCell>
-                <TableCell>{customer.name}</TableCell>
-                <TableCell>{customer.phone_1}</TableCell>
-                <TableCell>{customer.phone_2}</TableCell>
-                <TableCell>{customer.type}</TableCell>
-                <TableCell>{customer.state}</TableCell>
-                <TableCell>{customer.city_id}</TableCell>
-                <TableCell>{customer.zone_id}</TableCell>
-                <TableCell>{customer.category_id}</TableCell>
-                <TableCell>{customer.code}</TableCell>
-                <TableCell>{customer.kafyl_name}</TableCell>
-                <TableCell>{customer.kafyl_phone}</TableCell>
-                <TableCell>{customer.address}</TableCell>
-                <TableCell>
-                  <Typography
-                    sx={{
-                      color: Number(customer.loan) > 0 ? 'green' : Number(customer.loan) < 0 ? 'red' : 'inherit',
-                    }}
-                  >
-                    {Number(customer.loan || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </Typography>
-                </TableCell>
-                <TableCell>{customer.note}</TableCell>
-                <TableCell align="center">
-                  <IconButton color="primary" onClick={() => handleEditCustomer(customer.id)}>
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton color="error" onClick={() => handleDeleteClick(customer.id)}>
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
-              </TableRow>
-            ))}
-            {!paginatedCustomers.length && (
-              <TableRow>
-                <TableCell colSpan={16} align="center">
-                  هیچ زانیارییەک نەدۆزرایەوە.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-          <TableFooter>
-            <TableRow>
-              <TableCell colSpan={8} align="right" sx={{ background: '#f5f5f5', fontWeight: 'bold', fontSize: 16 }}>
-                کۆی گشتی کڕیارەکان: <span style={{ fontWeight: 'bold', color: '#1976d2' }}>{totalCount}</span>
-              </TableCell>
-              <TableCell colSpan={4} align="center" sx={{ background: '#f5f5f5', fontWeight: 'bold', fontSize: 16 }}>
-                قەرزی پۆزیتڤ: <span style={{ fontWeight: 'bold', color: '#388e3c' }}>{totalPositiveLoan.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-              </TableCell>
-              <TableCell colSpan={4} align="center" sx={{ background: '#f5f5f5', fontWeight: 'bold', fontSize: 16 }}>
-                قەرزی نێگەتڤ: <span style={{ fontWeight: 'bold', color: '#d32f2f' }}>{totalNegativeLoan.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-              </TableCell>
-            </TableRow>
-          </TableFooter>
-        </Table>
-      </TableContainer>
+            <TableBody>
+              {customers.map((customer) => (
+                <TableRow key={customer.id} hover>
+                    <TableCell>{customer.id}</TableCell>
+                  <TableCell>
+                    {categories.find(cat => cat.id === customer.category_id)?.name || customer.category_id || '-'}
+                  </TableCell>
+                   <TableCell>{customer.code}</TableCell>
+                  <TableCell>{customer.name}</TableCell>
+                  <TableCell>{customer.phone_1}</TableCell>
+                  <TableCell>{customer.type}</TableCell>
+                  <TableCell>
+                    {cities.find(c => c.id === customer.city_id)?.name || customer.city_id || '-'}
+                  </TableCell>
+                  <TableCell>
+                    {zones.find(z => z.id === customer.zone_id)?.name || customer.zone_id || '-'}
+                  </TableCell>
+                  
+                 
+                  <TableCell>{customer.address}</TableCell>
+                  <TableCell>
+                    {mandub.find(m => m.id === customer.mandub_id)?.name || customer.mandub_id || '-'}
+                  </TableCell>
+                  <TableCell>
+                    {currencies.find(cur => cur.id === customer.currency_id)?.name || customer.currency_id || '-'}
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      sx={{
+                        color:
+                          Number(customer.loan) > 0
+                            ? 'green'
+                            : Number(customer.loan) < 0
+                            ? 'red'
+                            : 'inherit',
+                      }}
+                    >
+                      {Number(customer.loan || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </Typography>
+                  </TableCell>
+              
+                  <TableCell align="center">
+                     <IconButton color="info" onClick={() => handleShowCustomer(customer.id)}>
+                        <VisibilityIcon />
+                      </IconButton>
+                    <IconButton color="primary" onClick={() => handleEditCustomer(customer.id)}>
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton color="error" onClick={() => handleDeleteClick(customer.id)}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!customers.length && (
+                <TableRow>
+                  <TableCell colSpan={13} align="center">
+                    هیچ زانیارییەک نەدۆزرایەوە.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+     <TableFooter>
+          <TableRow>
+            <TableCell colSpan={8} align="right" sx={{ background: '#f5f5f5', fontWeight: 'bold', fontSize: 16 }}>
+              کۆی قەرز:
+            </TableCell>
+            <TableCell colSpan={5} align="left" sx={{ background: '#f5f5f5', fontWeight: 'bold', fontSize: 16 }}>
+              <Table size="small">
+                <TableBody>
+                  {Object.values(loanSummaryByCurrency).map((row) => (
+                    <TableRow key={row.currencyName}>
+                      <TableCell sx={{ border: 0 }}>{row.currencyName}</TableCell>
+                      <TableCell sx={{ border: 0, color: '#388e3c', fontWeight: 'bold' }}>
+                        +{row.positive.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                      <TableCell sx={{ border: 0, color: '#d32f2f', fontWeight: 'bold' }}>
+                        {row.negative.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableCell>
+          </TableRow>
+        </TableFooter>
+          </Table>
+        </TableContainer>
+      )}
 
       {/* Pagination */}
       <Box display="flex" justifyContent="center" mt={3}>
         <Pagination
-          count={Math.ceil(customers.length / rowsPerPage)}
+          count={Math.ceil(totalCount / rowsPerPage)}
           page={currentPage}
           onChange={handlePageChange}
           color="primary"
@@ -399,6 +668,60 @@ function CustomerList({ isDrawerOpen }) {
         cancelText="پاشگەزبوونەوە"
       />
 
+{/* Customer pdf dialog */}
+
+<DialogPdf
+  open={openCustomerInfoPDF}
+  onClose={() => setOpenCustomerInfoPDF(false)}
+  document={
+     <CustomerInfoPDF
+      customers={reportCustomers}
+      categories={categories}
+      zones={zones}
+      currencies={currencies}
+      cities={cities}
+      mandub={mandub}
+      company={company}
+      priceTypes={priceTypes} // <-- add this
+      filters={{
+        category_id: filterCategoryId,
+        zone_id: filterZoneId,
+        city_id: filterCityId,
+        mandub_id: filterMandubId,
+        price_type_id: filterPriceTypeId,
+        type: filterType,
+        state: filterState,
+        currency_id: filterCurrencyId,
+        loan_positive: filterLoanPositive,
+        loan_negative: filterLoanNegative,
+        loan_zero: filterLoanZero,
+        search: searchQuery,
+      }}
+    />
+  }
+
+  fileName="customer_info_report.pdf"
+/>
+
+
+      {/* Customer Details Dialog */}
+
+     <CustomerDialogInfo
+        open={showDialog}
+        onClose={() => {
+          setShowDialog(false);
+          setShowCustomer(null);
+        }}
+        customer={showCustomer}
+        loading={showLoading}
+        categories={categories}
+        zones={zones}
+        currencies={currencies}
+        priceTypes={priceTypes}
+        cities={cities}
+        mandub={mandub}
+        />
+
       {/* Snackbar */}
       <Snackbar
         open={snackbarOpen}
@@ -413,4 +736,5 @@ function CustomerList({ isDrawerOpen }) {
     </Box>
   );
 }
+
 export default CustomerList;

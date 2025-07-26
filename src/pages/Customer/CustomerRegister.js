@@ -61,6 +61,8 @@ function CustomerRegister({ isDrawerOpen }) {
     limit_loan_day: '',
     latitude: 0,
     longitude: 0,
+    currency_id: 0,
+    price_type_id: 0,
   };
 
   const [formData, setFormData] = useState(initialFormData);
@@ -73,6 +75,9 @@ function CustomerRegister({ isDrawerOpen }) {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [mapOpen, setMapOpen] = useState(false);
+  const [mandubs, setMandubs] = useState([]);
+    const [currencies, setCurrencies] = useState([]);
+  const [priceTypes, setPriceTypes] = useState([]);
 
   const navigate = useNavigate();
   const { id } = useParams();
@@ -115,6 +120,31 @@ function CustomerRegister({ isDrawerOpen }) {
       })
       .catch(() => setCities([]));
 
+       // Fetch currencies
+    axiosInstance.get('/currency/index')
+      .then((response) => {
+        if (Array.isArray(response.data)) setCurrencies(response.data);
+        else setCurrencies(response.data.results || []);
+      })
+      .catch(() => setCurrencies([]));
+
+        // Fetch price types
+    axiosInstance.get('/item-price-type/index')
+      .then((response) => {
+        if (Array.isArray(response.data)) setPriceTypes(response.data);
+        else setPriceTypes(response.data.results || []);
+      })
+      .catch(() => setPriceTypes([]));
+
+
+       // Fetch mandubs (employees)
+    axiosInstance.get('/user/index')
+      .then((response) => {
+        if (Array.isArray(response.data)) setMandubs(response.data);
+        else setMandubs(response.data.results || []);
+      })
+      .catch(() => setMandubs([]));
+
     if (id) {
       axiosInstance.get(`/customer/show/${id}`)
         .then((response) => {
@@ -124,8 +154,12 @@ function CustomerRegister({ isDrawerOpen }) {
             category_id: response.data.category_id || 0,
             zone_id: response.data.zone_id || 0,
             city_id: response.data.city_id || 0,
+            mandub_id: response.data.mandub_id || 0,
             latitude: response.data.latitude ?? 0,
             longitude: response.data.longitude ?? 0,
+            currency_id: response.data.currency_id || 0,
+            price_type_id: response.data.price_type_id || 0,
+
           });
         })
         .catch(() => {});
@@ -143,6 +177,8 @@ function CustomerRegister({ isDrawerOpen }) {
     if (!data.phone_1) errors.phone_1 = 'مۆبایلی١ پێویستە';
     if (!data.type) errors.type = 'جۆری مامەڵە پێویستە';
     if (!data.state) errors.state = 'حاڵەت پێویستە';
+        if (!data.currency_id || data.currency_id === 0) errors.currency_id = 'دراو پێویستە';
+
     return errors;
   };
 
@@ -152,7 +188,16 @@ function CustomerRegister({ isDrawerOpen }) {
     setFormErrors(prev => ({ ...prev, [name]: '' }));
     setFormData(prev => ({
       ...prev,
-      [name]: ['category_id', 'zone_id', 'city_id', 'limit_loan_day', 'cobon'].includes(name) ? Number(value) : value,
+      [name]: [
+        'category_id',
+        'zone_id',
+        'city_id',
+        'limit_loan_day',
+        'cobon',
+        'mandub_id',
+        'currency_id',
+        'price_type_id'
+      ].includes(name) ? Number(value) : value,
     }));
   };
 
@@ -174,15 +219,17 @@ function CustomerRegister({ isDrawerOpen }) {
       category_id: Number(formData.category_id) || 0,
       zone_id: Number(formData.zone_id) || 0,
       city_id: Number(formData.city_id) || 0,
+      mandub_id: Number(formData.mandub_id) || 0,
       limit_loan_price: formData.limit_loan_price ? parseFloat(formData.limit_loan_price) : 0,
       limit_loan_day: formData.limit_loan_day ? parseInt(formData.limit_loan_day, 10) : 0,
       cobon: formData.cobon ? parseInt(formData.cobon, 10) : 0,
       latitude: formData.latitude ?? 0,
       longitude: formData.longitude ?? 0,
+      currency_id: Number(formData.currency_id) || 0,
+      price_type_id: Number(formData.price_type_id) || 0,
     };
-    
-    console.log('Submitting data:', dataToSubmit);
-    
+
+    console.log(dataToSubmit);
 
     const request = id
       ? axiosInstance.put(`/customer/update/${id}`, dataToSubmit)
@@ -264,7 +311,7 @@ function CustomerRegister({ isDrawerOpen }) {
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={2}>
                       <TextField
                         fullWidth
                         label="زون"
@@ -282,6 +329,23 @@ function CustomerRegister({ isDrawerOpen }) {
                         ))}
                       </TextField>
                     </Grid>
+                    <Grid item xs={12} md={2}>
+                      <TextField
+                        fullWidth
+                        label="مەندووب"
+                        name="mandub_id"
+                        select
+                    value={formData.mandub_id || 0}
+                    onChange={handleChangeWithErrorReset}
+                    error={!!formErrors.mandub_id}
+                    helperText={formErrors.mandub_id}
+                  >
+                    <MenuItem value={0}>مەندووب</MenuItem>
+                    {mandubs.map((m) => (
+                      <MenuItem key={m.id} value={m.id}>{m.name}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
                     <Grid item xs={12} md={4}>
                       <TextField
                         fullWidth
@@ -428,6 +492,41 @@ function CustomerRegister({ isDrawerOpen }) {
                       />
                     </Grid>
 
+                  <Grid item xs={12} md={2}>
+                    <TextField
+                      fullWidth
+                      label="دراو"
+                      name="currency_id"
+                      select
+                      value={formData.currency_id || 0}
+                      onChange={handleChangeWithErrorReset}
+                      error={!!formErrors.currency_id}
+                      helperText={formErrors.currency_id}
+                    >
+                      <MenuItem value={0}>دراو</MenuItem>
+                      {(currencies || []).map((c) => (
+                        <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} md={2}>
+                    <TextField
+                      fullWidth
+                      label="جۆری نرخ"
+                      name="price_type_id"
+                      select
+                      value={Number(formData.price_type_id) || 0}
+                      onChange={handleChangeWithErrorReset}
+                      error={!!formErrors.price_type_id}
+                      helperText={formErrors.price_type_id}
+                    >
+                      <MenuItem value={0}>جۆری نرخ</MenuItem>
+                      {(priceTypes || []).map((p) => (
+                        <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+
                     {/* Group 4: Loan Fields */}
                     <Grid item xs={12} md={4}>
                       <TextField
@@ -467,7 +566,7 @@ function CustomerRegister({ isDrawerOpen }) {
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={2}>
                       <TextField
                         fullWidth
                         type="number"
@@ -491,7 +590,7 @@ function CustomerRegister({ isDrawerOpen }) {
                     </Grid>
 
                     {/* Group 5: Cobon & Guarantor */}
-                    <Grid item xs={12} md={4}>
+                    <Grid item xs={12} md={2}>
                       <TextField
                         fullWidth
                         type="number"
