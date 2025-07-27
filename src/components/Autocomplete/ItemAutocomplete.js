@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Autocomplete from '@mui/material/Autocomplete';
 import TextField from '@mui/material/TextField';
 import CircularProgress from '@mui/material/CircularProgress';
-import axiosInstance from '../../components/service/axiosInstance';
+import axiosInstance from '../service/axiosInstance';
 
 function ItemAutocomplete({
   value,

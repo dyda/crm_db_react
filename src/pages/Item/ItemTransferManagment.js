@@ -13,7 +13,7 @@ import {
 
 import ConfirmDialog from '../../components/utils/ConfirmDialog';
 import axiosInstance from '../../components/service/axiosInstance';
-import ItemAutocomplete from '../../components/Item/ItemAutocomplete';
+import ItemAutocomplete from '../../components/Autocomplete/ItemAutocomplete';
 import DateRangeSelector from '../../components/utils/DateRangeSelector';
 import RegisterButton from '../../components/common/RegisterButton';
 import ClearButton from '../../components/common/ClearButton';

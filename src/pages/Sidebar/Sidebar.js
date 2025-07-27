@@ -107,15 +107,17 @@ const Sidebar = () => {
             </ListItem>
             <Collapse in={nestedOpen} timeout="auto" unmountOnExit>
               <List component="div" disablePadding>
-                <ListItem button component={Link} to="/customer_category">
-                  <ListItemText inset primary="گرووپ" sx={getTextStyles()} />
-                </ListItem>
+              
                 <ListItem button component={Link} to="/customer">
                   <ListItemText inset primary="ناساندن" sx={getTextStyles()} />
                 </ListItem>
                 <ListItem button component={Link} to="/customer/payment">
                   <ListItemText inset primary="واصڵكردن پارە" sx={getTextStyles()} />
                 </ListItem>
+                  <ListItem button component={Link} to="/customer_category">
+                  <ListItemText inset primary="گرووپ" sx={getTextStyles()} />
+                </ListItem>
+                
               </List>
               <Divider sx={{ backgroundColor: 'white' }} />
             </Collapse>
