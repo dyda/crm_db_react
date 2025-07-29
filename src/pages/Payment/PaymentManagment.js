@@ -48,9 +48,10 @@ const today = getToday();
     customer_id: '',
     employee_id: '',
     amount: '',
-    discount_result: '',
+   
     discount_type: '',
-    discount_value: '',
+    discount_value: 0,
+    discount_result: 0,
     type: '',
     note: '',
     user_id: '',
@@ -90,17 +91,24 @@ const today = getToday();
 
   // --- Effects ---
 
- const calculateDiscountResult = (loan, discountType, discountValue) => {
-  if (loan === null || loan === undefined || !discountType || !discountValue || isNaN(Number(loan)) || isNaN(Number(discountValue))) {
-    return '';
+const calculateDiscountResult = (loan, discountType, discountValue) => {
+  if (
+    loan === null ||
+    loan === undefined ||
+    !discountType ||
+    !discountValue ||
+    isNaN(Number(loan)) ||
+    isNaN(Number(discountValue))
+  ) {
+    return 0;
   }
   let result = 0;
   if (discountType === 'ڕێژە') {
-    result = (Number(loan) * Number(discountValue)) / 100;
+    result = (Math.abs(Number(loan)) * Number(discountValue)) / 100;
   } else if (discountType === 'پارە') {
     result = Number(discountValue);
   }
-  return result;
+  return Math.abs(result);
 };
 // Add this effect to auto-calculate and set discount_result when dependencies change
 useEffect(() => {
@@ -108,12 +116,12 @@ useEffect(() => {
     const discountResult = calculateDiscountResult(selectedCustomerLoan, formData.discount_type, formData.discount_value);
     setFormData(prev => ({
       ...prev,
-      discount_result: discountResult ? discountResult.toString() : ''
+      discount_result: discountResult
     }));
   } else {
     setFormData(prev => ({
       ...prev,
-      discount_result: ''
+      discount_result: 0
     }));
   }
   // eslint-disable-next-line
@@ -247,18 +255,12 @@ useEffect(() => {
   setFormErrors((prev) => ({ ...prev, [e.target.name]: '' }));
 
   // Prevent % discount > 100
-  if (
-    e.target.name === 'discount_value' &&
-    formData.discount_type === 'ڕێژە' &&
-    Number(e.target.value) > 100
-  ) {
-    setFormErrors((prev) => ({
-      ...prev,
-      discount_value: 'ڕێژە نابێت لە ١٠٠٪ زیاد بێت',
-    }));
+    if (e.target.name === 'discount_type' && !e.target.value) {
     setFormData((prev) => ({
       ...prev,
-      discount_value: '100',
+      discount_type: '',
+      discount_value: 0,
+      discount_result: 0,
     }));
     return;
   }
@@ -299,6 +301,7 @@ useEffect(() => {
     if (!formData.branch_id) errors.branch_id = 'لق دیاری بکە';
     if (!formData.currency_id) errors.currency_id = 'دراو دیاری بکە';
     if (!formData.type) errors.type = 'جۆری پارەدان دیاری بکە';
+    if (!formData.employee_id) errors.employee_id = 'کارمەند دیاری بکە';
 
     setFormErrors(errors);
     if (Object.keys(errors).length > 0) {
@@ -309,7 +312,12 @@ useEffect(() => {
     try {
       const payload = { ...formData, amount: Number(formData.amount.toString().replace(/,/g, '')) };
 
-      console.log(payload);
+      if (!payload.discount_type) {
+      payload.discount_type = '';
+      payload.discount_value = 0;
+      payload.discount_result = 0;
+    }
+      
       
       let response;
       if (selectedPaymentId) {
@@ -531,8 +539,8 @@ useEffect(() => {
                     error={!!formErrors.type}
                     helperText={formErrors.type}
                   >
-                    <MenuItem value="payment">پارەدان</MenuItem>
-                    <MenuItem value="receipt">وەرگرتن</MenuItem>
+                    <MenuItem value="پارەدان">پارەدان</MenuItem>
+                    <MenuItem value="وەرگرتن">وەرگرتن</MenuItem>
                   </TextField>
                 </Grid>
                 <Grid item xs={6}>
@@ -544,7 +552,6 @@ useEffect(() => {
                     value={formData.payment_method}
                     onChange={handleChangeWithErrorReset}
                   >
-                    <MenuItem value=""></MenuItem>
                     <MenuItem value="کاش">کاش</MenuItem>
                     <MenuItem value="بانک">بانک</MenuItem>
                     <MenuItem value="گواستنەوە">گواستنەوە</MenuItem>
@@ -569,25 +576,25 @@ useEffect(() => {
               </TextField>
             </Grid>
             <Grid item xs={6}>
-               <TextField
-    fullWidth
-    label="بەهای داشکاندن"
-    name="discount_value"
-    value={formatNumberWithCommas(formData.discount_value)}
-    onChange={e => {
-      // Only allow valid decimal numbers
-      const rawValue = e.target.value.replace(/,/g, '');
-      if (!/^\d*\.?\d*$/.test(rawValue)) return;
-      handleChangeWithErrorReset({
-        target: { name: 'discount_value', value: rawValue }
-      });
-    }}
-    sx={{ mb: 2 }}
-    type="text"
-    inputProps={{ min: 0 }}
-    error={!!formErrors.discount_value}
-    helperText={formErrors.discount_value}
-  />
+             <TextField
+                    fullWidth
+                    label="بەهای داشکاندن"
+                    name="discount_value"
+                    value={formatNumberWithCommas(formData.discount_value)}
+                    onChange={e => {
+                      const rawValue = e.target.value.replace(/,/g, '');
+                      if (!/^\d*\.?\d*$/.test(rawValue)) return;
+                      handleChangeWithErrorReset({
+                        target: { name: 'discount_value', value: rawValue }
+                      });
+                    }}
+                    sx={{ mb: 2 }}
+                    type="text"
+                    inputProps={{ min: 0 }}
+                    error={!!formErrors.discount_value}
+                    helperText={formErrors.discount_value}
+                    disabled={!formData.discount_type}
+                  />
             </Grid>
           </Grid>
 
