@@ -317,6 +317,9 @@ useEffect(() => {
       payload.discount_value = 0;
       payload.discount_result = 0;
     }
+
+    console.log(payload);
+    
       
       
       let response;
@@ -333,8 +336,9 @@ useEffect(() => {
           ...initialFormData,
           user_id: getCurrentUserId(),
         });
-        setSelectedPaymentId(null);
+         setSelectedPaymentId(null);
         setFormErrors({});
+        setSelectedCustomerLoan(null); // <-- Also clear selected customer loan
         setCurrentPage(1);
         handleFilter(1, rowsPerPage, sortBy, sortOrder);
         fetchTotalSumByCurrency();
@@ -463,13 +467,30 @@ useEffect(() => {
   helperText={formErrors.customer_id}
 />
 {selectedCustomerLoan !== null && (
-  <Box sx={{ mt: 1 }}>
+  <Box sx={{ mt: 1, display: 'flex', gap: 2, alignItems: 'center' }}>
     <Typography
       variant="subtitle2"
-      color={Number(selectedCustomerLoan) < 0 ? "error" : "primary"}
+      color={Number(selectedCustomerLoan) < 0 ? 'error' : 'primary'}
     >
-      قەرزی کڕیار: {formatNumberWithCommas(selectedCustomerLoan)}
+      قەرزی کۆن: {formatNumberWithCommas(selectedCustomerLoan)}
     </Typography>
+
+    {/* Calculate and show in base currency if exchange_rate is available */}
+    {(() => {
+      const selectedCurrency = currencies.find(c => c.id === formData.currency_id);
+      const exchangeRate = selectedCurrency?.exchange_rate || 1;
+      const finalLoan = formData.type === "پارەدان"
+        ? Number(selectedCustomerLoan) + Number(formData.amount || 0) + Number(formData.discount_result || 0)
+        : Number(selectedCustomerLoan) - Number(formData.amount || 0) - Number(formData.discount_result || 0);
+      const baseLoan = finalLoan / exchangeRate;
+      return (
+        <Typography variant="subtitle2" color="info.main">
+           قەرزی کۆتایی: {formatNumberWithCommas(baseLoan)}
+          {" "}
+          {company?.base_currency_symbol || ""}
+        </Typography>
+      );
+    })()}
   </Box>
 )}
 
